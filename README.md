@@ -1,5 +1,6 @@
 Redis ORM
 =========
+[![Build Status](https://travis-ci.org/tystr/redis-orm.svg?branch=master)](https://travis-ci.org/tystr/redis-orm)
 
 This is a small Object Relational Mapper library designed to assist in storing objects into a Redis database
 while "indexing" the fields of the object for efficient querying.
