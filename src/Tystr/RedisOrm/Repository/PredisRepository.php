@@ -91,7 +91,7 @@ class PredisRepository
      */
     public function find($id)
     {
-        $key = $this->keyNamingStrategy->getKeyName([$this->prefix, $id]);
+        $key = $this->keyNamingStrategy->getKeyName(array($this->prefix, $id));
         $data = $this->redis->hgetall($key);
 
         $reflClass = new \ReflectionClass($this->className);
