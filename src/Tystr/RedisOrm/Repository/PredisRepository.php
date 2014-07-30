@@ -108,7 +108,7 @@ class PredisRepository
      * @param DateTime $value
      * @return int
      */
-    public function transformDateValue($value)
+    protected function transformDateValue($value)
     {
         if (!$value instanceof DateTime) {
             throw new \RuntimeException(
