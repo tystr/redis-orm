@@ -11,6 +11,7 @@ use DateTime;
 use Tystr\RedisOrm\Annotations\Date;
 use Tystr\RedisOrm\Annotations\Index;
 use Tystr\RedisOrm\Annotations\Sortable;
+use Tystr\RedisOrm\Annotations\SortedIndex;
 use Tystr\RedisOrm\Exception\InvalidArgumentException;
 use Tystr\RedisOrm\KeyNamingStrategy\KeyNamingStrategyInterface;
 
@@ -67,7 +68,7 @@ class PredisRepository
         $reader = new AnnotationReader();
         $annotations = $reader->getPropertyAnnotations($property);
         foreach ($annotations as $annotation) {
-            if ($annotation instanceof Sortable) {
+            if ($annotation instanceof SortedIndex) {
                 $this->handleSortableProperty($object, $property, $annotation);
             } elseif ($annotation instanceof Index) {
                 $property->setAccessible(true);

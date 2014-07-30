@@ -9,7 +9,7 @@ use Doctrine\Common\Annotations\Annotation;
  * @Target({"PROPERTY"})
  * @author Tyler Stroud <tyler@tylerstroud.com>
  */
-class Sortable extends Annotation
+class SortedIndex extends Annotation
 {
     /**
      * @var string
