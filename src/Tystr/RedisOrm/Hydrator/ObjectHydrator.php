@@ -18,7 +18,6 @@ class ObjectHydrator implements ObjectHydratorInterface
      */
     public function hydrate($object, array $data)
     {
-        var_dump($data);
         $reflClass = new \ReflectionClass(get_class($object));
         $reader = new AnnotationReader();
         foreach ($reflClass->getProperties() as $property) {
