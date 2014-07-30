@@ -73,7 +73,7 @@ class PredisRepository
             } elseif ($annotation instanceof Index) {
                 $property->setAccessible(true);
                 $key = $this->keyNamingStrategy->getKeyName(
-                    [$this->getKeyNameFromAnnotation($annotation, $property), $property->getValue($object)]
+                    array($this->getKeyNameFromAnnotation($annotation, $property), $property->getValue($object))
                 );
                 $this->redis->sadd($key, $this->getIdForClass($object));
             }
