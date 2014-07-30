@@ -16,12 +16,22 @@ class MainContext extends BaseContext
      */
     protected $repository;
 
+    /**
+     * @var array|Car[]
+     */
+    protected $cars = array();
+
     public function __construct()
     {
         parent::__construct();
 
         $keyNamingStrategy = new ColonDelimitedKeyNamingStrategy();
-        $this->repository = new PredisRepository($this->redis, $keyNamingStrategy);
+        $this->repository = new PredisRepository(
+            $this->redis,
+            $keyNamingStrategy,
+            'Tystr\RedisOrm\Test\Model\Car',
+            'cars'
+        );
     }
 
     /**
@@ -57,5 +67,22 @@ class MainContext extends BaseContext
         foreach ($table->getHash() as $key) {
             assertTrue($this->redis->sismember($key['name'], $key['value']));
         }
+    }
+
+    /**
+     * @When I find a Car by id :id
+     */
+    public function iFindACarById($id)
+    {
+        $this->cars[] = $this->repository->find($id);
+    }
+
+    /**
+     * @Then there should be :count car
+     */
+    public function iThereShouldBeCarReturned($count)
+    {
+        assertCount($count, $this->cars);
+        assertInstanceOf('Tystr\RedisOrm\Test\Model\Car', $this->cars[0]);
     }
 }

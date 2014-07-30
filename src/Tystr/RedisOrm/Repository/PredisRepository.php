@@ -12,6 +12,8 @@ use Tystr\RedisOrm\Annotations\Date;
 use Tystr\RedisOrm\Annotations\Index;
 use Tystr\RedisOrm\Annotations\SortedIndex;
 use Tystr\RedisOrm\Exception\InvalidArgumentException;
+use Tystr\RedisOrm\Hydrator\ObjectHydrator;
+use Tystr\RedisOrm\Hydrator\ObjectHydratorInterface;
 use Tystr\RedisOrm\KeyNamingStrategy\KeyNamingStrategyInterface;
 
 /**
@@ -19,6 +21,11 @@ use Tystr\RedisOrm\KeyNamingStrategy\KeyNamingStrategyInterface;
  */
 class PredisRepository
 {
+    /**
+     * @var string
+     */
+    protected $className;
+
     /**
      * @var Client
      */
@@ -30,13 +37,28 @@ class PredisRepository
     protected $keyNamingStrategy;
 
     /**
+     * @var string
+     */
+    protected $prefix;
+
+    /**
+     * @var ObjectHydratorInterface
+     */
+    protected $hydrator;
+
+    /**
      * @param Client                     $redis
      * @param KeyNamingStrategyInterface $keyNamingStrategy
+     * @param string                     $className
+     * @param string                     $prefix
      */
-    public function __construct(Client $redis, KeyNamingStrategyInterface $keyNamingStrategy)
+    public function __construct(Client $redis, KeyNamingStrategyInterface $keyNamingStrategy, $className, $prefix)
     {
         $this->redis = $redis;
         $this->keyNamingStrategy = $keyNamingStrategy;
+        $this->className = $className;
+        $this->prefix = $prefix;
+        $this->hydrator = new ObjectHydrator();
     }
 
     /**
@@ -53,10 +75,29 @@ class PredisRepository
             );
         }
 
+        $this->redis->hmset(
+            $this->keyNamingStrategy->getKeyName([$this->prefix, $this->getIdForClass($object)]),
+            $this->hydrator->toArray($object)
+        );
         $reflClass = new ReflectionClass(get_class($object));
         foreach ($reflClass->getProperties() as $property) {
             $this->parseAnnotationsForProperty($object, $property);
         }
+    }
+
+    /**
+     * @param mixed $id
+     * @return object
+     */
+    public function find($id)
+    {
+        $key = $this->keyNamingStrategy->getKeyName([$this->prefix, $id]);
+        $data = $this->redis->hgetall($key);
+
+        $reflClass = new \ReflectionClass($this->className);
+        $object = $reflClass->newInstanceWithoutConstructor();
+
+        return $this->hydrator->hydrate($object, $data);
     }
 
     /**
