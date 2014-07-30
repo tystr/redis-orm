@@ -94,8 +94,12 @@ class PredisRepository
         $key = $this->keyNamingStrategy->getKeyName(array($this->prefix, $id));
         $data = $this->redis->hgetall($key);
 
-        $reflClass = new \ReflectionClass($this->className);
-        $object = $reflClass->newInstanceWithoutConstructor();
+        $reflClass = new ReflectionClass($this->className);
+        if (version_compare(PHP_VERSION, '5.4') >= 0) {
+            $object = $reflClass->newInstanceWithoutConstructor();
+        } else {
+            $object = unserialize(sprintf('O:%d:"%s":0:{}', strlen($this->className), $this->className));
+        }
 
         return $this->hydrator->hydrate($object, $data);
     }
