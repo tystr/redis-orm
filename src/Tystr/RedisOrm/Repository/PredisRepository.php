@@ -10,7 +10,6 @@ use ReflectionProperty;
 use DateTime;
 use Tystr\RedisOrm\Annotations\Date;
 use Tystr\RedisOrm\Annotations\Index;
-use Tystr\RedisOrm\Annotations\Sortable;
 use Tystr\RedisOrm\Annotations\SortedIndex;
 use Tystr\RedisOrm\Exception\InvalidArgumentException;
 use Tystr\RedisOrm\KeyNamingStrategy\KeyNamingStrategyInterface;
