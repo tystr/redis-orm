@@ -30,7 +30,8 @@ class PredisRepository
     protected $keyNamingStrategy;
 
     /**
-     * @param Client $redis
+     * @param Client                     $redis
+     * @param KeyNamingStrategyInterface $keyNamingStrategy
      */
     public function __construct(Client $redis, KeyNamingStrategyInterface $keyNamingStrategy)
     {
