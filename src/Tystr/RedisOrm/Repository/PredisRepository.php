@@ -76,7 +76,7 @@ class PredisRepository
         }
 
         $this->redis->hmset(
-            $this->keyNamingStrategy->getKeyName([$this->prefix, $this->getIdForClass($object)]),
+            $this->keyNamingStrategy->getKeyName(array($this->prefix, $this->getIdForClass($object))),
             $this->hydrator->toArray($object)
         );
         $reflClass = new ReflectionClass(get_class($object));
