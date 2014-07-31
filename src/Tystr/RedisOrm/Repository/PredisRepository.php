@@ -50,15 +50,14 @@ class PredisRepository
      * @param Client                     $redis
      * @param KeyNamingStrategyInterface $keyNamingStrategy
      * @param string                     $className
-     * @param string                     $prefix
      */
-    public function __construct(Client $redis, KeyNamingStrategyInterface $keyNamingStrategy, $className, $prefix)
+    public function __construct(Client $redis, KeyNamingStrategyInterface $keyNamingStrategy, $className)
     {
         $this->redis = $redis;
         $this->keyNamingStrategy = $keyNamingStrategy;
         $this->className = $className;
-        $this->prefix = $prefix;
         $this->hydrator = new ObjectHydrator();
+        $this->prefix = $this->getPrefix($className);
     }
 
     /**
@@ -192,6 +191,19 @@ class PredisRepository
         }
 
         return $id;
+    }
+
+    /**
+     * @param string $className
+     * @return string
+     */
+    protected function getPrefix($className)
+    {
+        $reader = new AnnotationReader();
+        $reflClass = new ReflectionClass($className);
+        $prefixAnnotation = $reader->getClassAnnotation($reflClass, 'Tystr\RedisOrm\Annotations\Prefix');
+
+        return null === $prefixAnnotation->value ? $reflClass->getShortName(): $prefixAnnotation->value;
     }
 
     /**

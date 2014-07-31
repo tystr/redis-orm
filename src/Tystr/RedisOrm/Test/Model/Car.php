@@ -6,8 +6,10 @@ use DateTime;
 use Tystr\RedisOrm\Annotations\Date;
 use Tystr\RedisOrm\Annotations\Index;
 use Tystr\RedisOrm\Annotations\Id;
+use Tystr\RedisOrm\Annotations\Prefix;
 
 /**
+ * @Prefix("cars")
  * @author Tyler Stroud <tyler@tylerstroud.com>
  */
 class Car
