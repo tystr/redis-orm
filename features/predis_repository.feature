@@ -19,3 +19,6 @@ Feature: Repository persistence
       | Tesla | Model S | V8          | red   |
     When I find a Car by id 1
     Then there should be 1 car
+    And the car with the id 1 should have the following properties:
+      | make  | model   | engine_type | color |
+      | Tesla | Model S | V8          | red   |

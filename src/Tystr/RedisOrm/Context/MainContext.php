@@ -85,4 +85,30 @@ class MainContext extends BaseContext
         assertCount($count, $this->cars);
         assertInstanceOf('Tystr\RedisOrm\Test\Model\Car', $this->cars[0]);
     }
+
+    /**
+     * @Then the car with the id :arg1 should have the following properties:
+     */
+    public function theCarWithTheIdShouldHaveTheFollowingProperties($id, TableNode $table)
+    {
+        $car = $this->getObjectById($id);
+
+        $expected = $table->getHash();
+        assertEquals($expected[0]['make'], $car->getMake());
+        assertEquals($expected[0]['model'], $car->getModel());
+        assertEquals($expected[0]['engine_type'], $car->getEngineType());
+        assertEquals($expected[0]['color'], $car->getColor());
+    }
+
+    /**
+     * @param int$id
+     * @return object
+     */
+    public function getObjectById($id)
+    {
+        $object = $this->repository->find($id);
+        assertNotNull($object);
+
+        return $object;
+    }
 }

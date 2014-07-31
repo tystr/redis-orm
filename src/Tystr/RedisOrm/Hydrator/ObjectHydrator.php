@@ -23,16 +23,21 @@ class ObjectHydrator implements ObjectHydratorInterface
         foreach ($reflClass->getProperties() as $property) {
             $annotations = $reader->getPropertyAnnotations($property);
             foreach ($annotations as $annotation) {
-                if ($annotation instanceof Date) {
-                    $key = $this->getKeyNameFromAnnotation($property, $annotation);
-                    if (isset($data[$key])) {
+                $key = $this->getKeyNameFromAnnotation($property, $annotation);
+                if (isset($data[$key])) {
+                    if ($annotation instanceof Date) {
                         $property->setAccessible(true);
                         $property->setValue($object, new \DateTime('@'.$data[$key]));
+                        unset($data[$key]);
+                    } else {
+                        $property->setAccessible(true);
+                        $property->setValue($object, $data[$key]);
                         unset($data[$key]);
                     }
                 }
             }
         }
+
 
         return $object;
     }
@@ -51,7 +56,6 @@ class ObjectHydrator implements ObjectHydratorInterface
                 $key = $this->getKeyNameFromAnnotation($property, $annotation);
                 $property->setAccessible(true);
                 if ($annotation instanceof Date) {
-                    $property->setAccessible(true);
                     // @todo type check for datetiem
                     $data[$key] = $property->getValue($object)->format('U');
                 } else {
