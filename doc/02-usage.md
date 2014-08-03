@@ -11,6 +11,9 @@ use Tystr\RedisOrm\Annotations\Id;
 use Tystr\RedisOrm\Annotations\Index;
 use Tystr\RedisOrm\Annotations\Date;
 
+/**
+ * @Prefix("cars")
+ */
 class Car
 {
 

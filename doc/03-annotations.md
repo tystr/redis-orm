@@ -1,6 +1,10 @@
 Annotations
 ===========
 
+## @Prefix
+Define this property to customize the prefix used for the key name that will contain the hash of the object's data. If
+you omit this annotation, the class name will be used.
+
 ## @Id
 Each class must have One `@Id` annotatated property. The value of this property will be used when creating the indexes.
 
