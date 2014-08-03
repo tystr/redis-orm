@@ -3,7 +3,7 @@ Installation
 
 Install via composer:
 
-    $ composer.phar require tystr/redis-orm:1.x-dev
+    $ composer.phar require tystr/redis-orm:1.0.*
     
 Then, simply include the composer autoloader in your project:
 ```PHP
