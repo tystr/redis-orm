@@ -4,7 +4,7 @@
         "Read more about it at http://getcomposer.org/doc/01-basic-usage.md#composer-lock-the-lock-file",
         "This file is @generated automatically"
     ],
-    "hash": "7c618d7978d3743a224566b17f6ee3eb",
+    "hash": "55d11bc913761ce557ac4579fd764a79",
     "packages": [
         {
             "name": "doctrine/annotations",
@@ -133,16 +133,16 @@
         },
         {
             "name": "predis/predis",
-            "version": "0.8.x-dev",
+            "version": "v1.0.0",
             "source": {
                 "type": "git",
                 "url": "https://github.com/nrk/predis.git",
-                "reference": "647cd4c502bb04748e00f9f5fe592809cdc09e85"
+                "reference": "d4be306d0aca28b5633b96adef03b29fea569c2f"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/nrk/predis/zipball/647cd4c502bb04748e00f9f5fe592809cdc09e85",
-                "reference": "647cd4c502bb04748e00f9f5fe592809cdc09e85",
+                "url": "https://api.github.com/repos/nrk/predis/zipball/d4be306d0aca28b5633b96adef03b29fea569c2f",
+                "reference": "d4be306d0aca28b5633b96adef03b29fea569c2f",
                 "shasum": ""
             },
             "require": {
@@ -156,9 +156,14 @@
                 "ext-phpiredis": "Allows faster serialization and deserialization of the Redis protocol"
             },
             "type": "library",
+            "extra": {
+                "branch-alias": {
+                    "dev-master": "1.0-dev"
+                }
+            },
             "autoload": {
-                "psr-0": {
-                    "Predis": "lib/"
+                "psr-4": {
+                    "Predis\\": "src/"
                 }
             },
             "notification-url": "https://packagist.org/downloads/",
@@ -179,7 +184,7 @@
                 "predis",
                 "redis"
             ],
-            "time": "2014-07-28 18:58:26"
+            "time": "2014-08-01 09:59:50"
         }
     ],
     "packages-dev": [
@@ -1492,19 +1497,12 @@
             "time": "2014-07-09 09:05:48"
         }
     ],
-    "aliases": [
-
-    ],
+    "aliases": [],
     "minimum-stability": "stable",
     "stability-flags": {
-        "predis/predis": 20,
         "fzaninotto/faker": 20
     },
     "prefer-stable": false,
-    "platform": [
-
-    ],
-    "platform-dev": [
-
-    ]
+    "platform": [],
+    "platform-dev": []
 }
