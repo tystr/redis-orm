@@ -6,7 +6,7 @@ Define this property to customize the prefix used for the key name that will con
 you omit this annotation, the class name will be used.
 
 ## @Id
-Each class must have One `@Id` annotatated property. The value of this property will be used when creating the indexes.
+Each class must have One `@Id` annotated property. The value of this property will be used when creating the indexes.
 
 Note: It's up to you to ensure that this is some unique value for each of your objects. Otherwise, you will see that
 saving objects with the same id will overwrite the entries in the indexes and the key containing the data for the object.
