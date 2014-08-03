@@ -215,7 +215,7 @@ class PredisRepository
         $reflClass = new ReflectionClass($className);
         $prefixAnnotation = $reader->getClassAnnotation($reflClass, 'Tystr\RedisOrm\Annotations\Prefix');
 
-        return null === $prefixAnnotation->value ? $reflClass->getShortName(): $prefixAnnotation->value;
+        return null === $prefixAnnotation->value ? $reflClass->getShortName() : $prefixAnnotation->value;
     }
 
     /**
@@ -225,6 +225,7 @@ class PredisRepository
     {
         if (version_compare(PHP_VERSION, '5.4') >= 0) {
             $reflClass = new ReflectionClass($this->className);
+
             return $reflClass->newInstanceWithoutConstructor();
         }
 
