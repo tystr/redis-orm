@@ -22,3 +22,15 @@ Feature: Repository persistence
     And the car with the id 1 should have the following properties:
       | make  | model   | engine_type | color |
       | Tesla | Model S | V8          | red   |
+
+  Scenario: Saving an object with null property values removes the id from index field for that property
+    Given the following Car:
+      | make  | model   | engine_type | color |
+      | Tesla   | Model S | V8          | red    |
+      | Porsche | 911     | V8          | yellow |
+    Then there should be 2 items in the "manufacture_date" key
+    When I set the manufacture date to null
+    Then there should be 1 items in the "manufacture_date" key
+    And When I set the color for the car "1" to "null"
+    Then there should be 0 items in the "color:red" key
+

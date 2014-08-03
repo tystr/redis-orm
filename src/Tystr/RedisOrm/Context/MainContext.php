@@ -39,15 +39,17 @@ class MainContext extends BaseContext
      */
     public function theFollowingCars(TableNode $table)
     {
+        $i = 1;
         foreach ($table->getHash() as $data) {
             $car = new Car();
-            $car->setId(1);
+            $car->setId($i);
             $car->setColor($data['color']);
             $car->setEngineType($data['engine_type']);
             $car->setMake($data['make']);
             $car->setModel($data['model']);
             $car->setManufactureDate(new \DateTime('2013-01-01'));
             $this->repository->save($car);
+            $i++;
         }
     }
 
@@ -98,6 +100,40 @@ class MainContext extends BaseContext
         assertEquals($expected[0]['model'], $car->getModel());
         assertEquals($expected[0]['engine_type'], $car->getEngineType());
         assertEquals($expected[0]['color'], $car->getColor());
+    }
+
+    /**
+     * @When I set the manufacture date to null
+     */
+    public function iSetTheManufactureDateToNull()
+    {
+        $car = $this->getObjectById(1);
+        $car->setManufactureDate(null);
+        $this->repository->save($car);
+    }
+
+    /**
+     * @Then When I set the color for the car :id to :color
+     */
+    public function whenISetTheColorForTheCarTo($id, $color)
+    {
+        $car = $this->getObjectById($id);
+        $color = $color == 'null' ? null : $color;
+        $car->setColor($color);
+        $this->repository->save($car);
+    }
+
+    /**
+     * @Then there should be :count items in the :key key
+     */
+    public function thereShouldBeItemsInTheKey($count, $key)
+    {
+        $type = $this->redis->type($key);
+        if ('set' == $type) {
+            assertEquals($count, $this->redis->scard($key));
+        } else {
+            assertEquals($count, $this->redis->zcard($key));
+        }
     }
 
     /**

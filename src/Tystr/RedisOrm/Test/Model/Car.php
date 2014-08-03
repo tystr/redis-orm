@@ -141,9 +141,8 @@ class Car
     /**
      * @param DateTime $manufactureDate
      */
-    public function setManufactureDate(DateTime $manufactureDate)
+    public function setManufactureDate(DateTime $manufactureDate = null)
     {
         $this->manufactureDate = $manufactureDate;
     }
 }
-

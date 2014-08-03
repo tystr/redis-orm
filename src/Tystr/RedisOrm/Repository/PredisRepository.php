@@ -74,13 +74,16 @@ class PredisRepository
             );
         }
 
+        $key = $this->keyNamingStrategy->getKeyName(array($this->prefix, $this->getIdForClass($object)));
+        $data = $this->redis->hgetall($key);
+
         $this->redis->hmset(
             $this->keyNamingStrategy->getKeyName(array($this->prefix, $this->getIdForClass($object))),
             $this->hydrator->toArray($object)
         );
         $reflClass = new ReflectionClass(get_class($object));
         foreach ($reflClass->getProperties() as $property) {
-            $this->parseAnnotationsForProperty($object, $property);
+            $this->parseAnnotationsForProperty($object, $property, $data);
         }
     }
 
@@ -100,7 +103,7 @@ class PredisRepository
      * @param $object
      * @param ReflectionProperty $property
      */
-    protected function parseAnnotationsForProperty($object, ReflectionProperty $property)
+    protected function parseAnnotationsForProperty($object, ReflectionProperty $property, $data)
     {
         $reader = new AnnotationReader();
         $annotations = $reader->getPropertyAnnotations($property);
@@ -112,7 +115,14 @@ class PredisRepository
                 $key = $this->keyNamingStrategy->getKeyName(
                     array($this->getKeyNameFromAnnotation($annotation, $property), $property->getValue($object))
                 );
-                $this->redis->sadd($key, $this->getIdForClass($object));
+                if (null === $property->getValue($object)) {
+                    $this->redis->srem(
+                        $this->keyNamingStrategy->getKeyName(array($key, $data[$key])),
+                        $this->getIdForClass($object)
+                    );
+                } else {
+                    $this->redis->sadd($key, $this->getIdForClass($object));
+                }
             }
         }
     }
@@ -127,6 +137,8 @@ class PredisRepository
         $property->setAccessible(true);
         $value = $property->getValue($object);
         if (null === $value) {
+            $this->redis->zrem($this->getKeyNameFromAnnotation($annotation, $property), $this->getIdForClass($object));
+
             return;
         }
 
