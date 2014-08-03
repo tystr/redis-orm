@@ -1,7 +1,7 @@
 {
     "name": "tystr/redis-orm",
     "type": "library",
-    "description": "A simple PHP ORM to assist in persisting objects in Redis and indexing them for efficient searching and filtering.",
+    "description": "A simple PHP object mapper to assist in persisting objects in Redis and indexing them for efficient searching and filtering.",
     "keywords" : [ "redis", "orm", "redis-orm", "key", "value"],
     "require": {
         "predis/predis": "~1.0",
