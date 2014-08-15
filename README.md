@@ -19,7 +19,21 @@ Installation
 Add to your project via composer:
 
     $ composer.phar require tystr/redis-orm:1.0.*
-    
+
+Setting up the Development Environment
+======================================
+You'll need [Vagrant][2] installed and configured correctly.
+
+Simply run the following command to get your VM up and running:
+
+    $ vagrant up
+
+To run the [Behat][3] test suite:
+
+    $ vagrant ssh
+    $ cd /vagrant
+    $ vendor/bin/behat
+
 Read The Documentation
 ======================
 * **[Intro](doc/00-intro.md)**
@@ -28,3 +42,5 @@ Read The Documentation
 * **[Annotations](doc/03-annotations.md)**
 
 [1]: http://redis.io/
+[2]: http://vagrantup.com/
+[3]: http://docs.behat.org/en/v3.0/
