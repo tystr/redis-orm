@@ -19,7 +19,7 @@ use Tystr\RedisOrm\KeyNamingStrategy\KeyNamingStrategyInterface;
 /**
  * @author Tyler Stroud <tyler@tylerstroud.com>
  */
-class PredisRepository
+class ObjectRepository
 {
     /**
      * @var string

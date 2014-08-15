@@ -53,7 +53,7 @@ class Car
 
 Now, the repository class will know which indexes to create and what to use as the values.
 
-Instantiating the `PredisRepository` class and saving your object is simple:
+Instantiating the `ObjectRepository` class and saving your object is simple:
 ```PHP
 <?php
 
@@ -61,7 +61,7 @@ require 'vendor/autoload.php';
 
 $redis = new Predis\Client();
 $keyNamingStrategy = new Tystr\RedisOrm\KeyNamingStrategy\ColonDelimitedKeyNamingStrategy();
-$repository = new PredisRepository($client, $keyNamingStrategy));
+$repository = new ObjectRepository($client, $keyNamingStrategy));
 
 $car = new Car(123, 'Tesla', new \DateTime());
 

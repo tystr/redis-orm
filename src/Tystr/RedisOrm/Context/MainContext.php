@@ -3,7 +3,7 @@ namespace Tystr\RedisOrm\Context;
 
 use Behat\Gherkin\Node\TableNode;
 use Tystr\RedisOrm\KeyNamingStrategy\ColonDelimitedKeyNamingStrategy;
-use Tystr\RedisOrm\Repository\PredisRepository;
+use Tystr\RedisOrm\Repository\ObjectRepository;
 use Tystr\RedisOrm\Test\Model\Car;
 
 /**
@@ -12,7 +12,7 @@ use Tystr\RedisOrm\Test\Model\Car;
 class MainContext extends BaseContext
 {
     /**
-     * @var PredisRepository
+     * @var ObjectRepository
      */
     protected $repository;
 
@@ -26,7 +26,7 @@ class MainContext extends BaseContext
         parent::__construct();
 
         $keyNamingStrategy = new ColonDelimitedKeyNamingStrategy();
-        $this->repository = new PredisRepository(
+        $this->repository = new ObjectRepository(
             $this->redis,
             $keyNamingStrategy,
             'Tystr\RedisOrm\Test\Model\Car',
