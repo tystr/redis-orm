@@ -15,6 +15,9 @@ use Tystr\RedisOrm\Exception\InvalidArgumentException;
 use Tystr\RedisOrm\Hydrator\ObjectHydrator;
 use Tystr\RedisOrm\Hydrator\ObjectHydratorInterface;
 use Tystr\RedisOrm\KeyNamingStrategy\KeyNamingStrategyInterface;
+use Tystr\RedisOrm\Metadata\AnnotationMetadataLoader;
+use Tystr\RedisOrm\Metadata\Metadata;
+use Tystr\RedisOrm\Metadata\MetadataRegistry;
 
 /**
  * @author Tyler Stroud <tyler@tylerstroud.com>
@@ -57,7 +60,6 @@ class ObjectRepository
         $this->keyNamingStrategy = $keyNamingStrategy;
         $this->className = $className;
         $this->hydrator = new ObjectHydrator();
-        $this->prefix = $this->getPrefix($className);
     }
 
     /**
@@ -74,17 +76,15 @@ class ObjectRepository
             );
         }
 
-        $key = $this->keyNamingStrategy->getKeyName(array($this->prefix, $this->getIdForClass($object)));
-        $data = $this->redis->hgetall($key);
+        $metadata = $this->getMetadataFor($this->className);
+        $key = $this->keyNamingStrategy->getKeyName(array($metadata->getPrefix(), $this->getIdForClass($object, $metadata)));
+        $originalData = $this->redis->hgetall($key);
 
         $this->redis->hmset(
-            $this->keyNamingStrategy->getKeyName(array($this->prefix, $this->getIdForClass($object))),
+            $key,
             $this->hydrator->toArray($object)
         );
-        $reflClass = new ReflectionClass(get_class($object));
-        foreach ($reflClass->getProperties() as $property) {
-            $this->parseAnnotationsForProperty($object, $property, $data);
-        }
+        $this->handleProperties($object, $metadata, $originalData);
     }
 
     /**
@@ -93,67 +93,98 @@ class ObjectRepository
      */
     public function find($id)
     {
-        $key = $this->keyNamingStrategy->getKeyName(array($this->prefix, $id));
+        $metadata = $this->getMetadataFor($this->className);
+        $key = $this->keyNamingStrategy->getKeyName(array($metadata->getPrefix(), $id));
         $data = $this->redis->hgetall($key);
 
         return $this->hydrator->hydrate($this->newObject(), $data);
     }
 
     /**
-     * @param $object
-     * @param ReflectionProperty $property
+     * @param string $className
+     * @return Metadata
      */
-    protected function parseAnnotationsForProperty($object, ReflectionProperty $property, $data)
+    protected function getMetadataFor($className)
     {
-        $reader = new AnnotationReader();
-        $annotations = $reader->getPropertyAnnotations($property);
-        foreach ($annotations as $annotation) {
-            if ($annotation instanceof SortedIndex) {
-                $this->handleSortableProperty($object, $property, $annotation);
-            } elseif ($annotation instanceof Index) {
-                $property->setAccessible(true);
-                $key = $this->keyNamingStrategy->getKeyName(
-                    array($this->getKeyNameFromAnnotation($annotation, $property), $property->getValue($object))
-                );
-                if (null === $property->getValue($object)) {
-                    $this->redis->srem(
-                        $this->keyNamingStrategy->getKeyName(array($key, $data[$key])),
-                        $this->getIdForClass($object)
-                    );
-                } else {
-                    $this->redis->sadd($key, $this->getIdForClass($object));
-                }
-            }
+        $metadataRegistry = new MetadataRegistry();
+
+        return $metadataRegistry->getMetadataFor($className);
+    }
+
+    /**
+     * @param object   $object
+     * @param Metadata $metadata
+     * @param array    $originalData
+     */
+    protected function handleProperties($object, Metadata $metadata, array $originalData)
+    {
+        $reflClass = new ReflectionClass($object);
+        foreach ($metadata->getIndexes() as $propertyName => $keyName) {
+            $this->handleIndex($reflClass, $object, $propertyName, $keyName, $metadata, $originalData);
+        }
+
+        foreach ($metadata->getSortedIndexes() as $propertyName => $keyName) {
+            $this->handleSortedIndex($reflClass, $object, $propertyName, $keyName, $metadata, $originalData);
         }
     }
 
     /**
-     * @param $object
-     * @param ReflectionProperty $property
-     * @param Annotation         $annotation
+     * @param ReflectionClass $reflClass
+     * @param object          $object
+     * @param string          $propertyName
+     * @param Metadata        $metadata
+     * @param array           $originalData
      */
-    protected function handleSortableProperty($object, ReflectionProperty $property, Annotation $annotation)
+    protected function handleIndex(ReflectionClass $reflClass, $object, $propertyName, $keyName, Metadata $metadata, array $originalData)
     {
+        $property = $reflClass->getProperty($propertyName);
+        $property->setAccessible(true);
+        $value = $property->getValue($object);
+        if (null === $value && isset($originalData[$keyName])) {
+            $key = $this->keyNamingStrategy->getKeyName(array($keyName, $originalData[$keyName]));
+            $this->redis->srem(
+                $key,
+                $this->getIdForClass($object, $metadata)
+            );
+        } else {
+            $key = $this->keyNamingStrategy->getKeyName(array($keyName, $value));
+            $this->redis->sadd($key, $this->getIdForClass($object, $metadata));
+        }
+    }
+
+    /**
+     * @param ReflectionClass $reflClass
+     * @param object          $object
+     * @param string          $propertyName
+     * @param Metadata        $metadata
+     * @param array           $originalData
+     */
+    protected function handleSortedIndex(ReflectionClass $reflClass, $object, $propertyName, $keyName, Metadata $metadata, array $originalData)
+    {
+        $property = $reflClass->getProperty($propertyName);
         $property->setAccessible(true);
         $value = $property->getValue($object);
         if (null === $value) {
-            $this->redis->zrem($this->getKeyNameFromAnnotation($annotation, $property), $this->getIdForClass($object));
+            $this->redis->zrem($this->keyNamingStrategy->getKeyName(array($keyName, $value)), $this->getIdForClass($object, $metadata));
 
             return;
         }
 
-        if ($annotation instanceof Date) {
+        // @TODO FIGURE OUT IF DATE OR HOW TO HANDLE THIS
+        //if ($annotation instanceof Date) {
             $value = $this->transformDateValue($value);
-        }
+        //}
 
         $this->redis->zadd(
-            $this->getKeyNameFromAnnotation($annotation, $property),
+            $this->keyNamingStrategy->getKeyName(array($keyName)),
             $value,
-            $this->getIdForClass($object)
+            $this->getIdForClass($object, $metadata)
         );
     }
 
     /**
+     * @TODO This doesn't belong in here
+     *
      * @param DateTime $value
      * @return int
      */
@@ -172,50 +203,25 @@ class ObjectRepository
     }
 
     /**
-     * @param Annotation         $annotation
-     * @param ReflectionProperty $property
-     * @return string
-     */
-    protected function getKeyNameFromAnnotation(Annotation $annotation, ReflectionProperty $property)
-    {
-        return null === $annotation->name ? $property->getName() : $annotation->name;
-    }
-
-    /**
      * @param ReflectionClass $reflClass
+     * @param Metadata        $metadata
      * @return string|int
      */
-    protected function getIdForClass($object)
+    protected function getIdForClass($object, Metadata $metadata)
     {
-        $reader = new AnnotationReader();
-        $reflClass = new ReflectionClass($object);
-        $id = null;
-        foreach ($reflClass->getProperties() as $property) {
-            if (null !== $reader->getPropertyAnnotation($property, 'Tystr\RedisOrm\Annotations\Id')) {
-                if ($id !== null) {
-                    throw new \RuntimeException(
-                        sprintf('Only 1 class property can have the "Tystr\RedisOrm\Annotations\Id" annotation.')
-                    );
-                }
-                $property->setAccessible(true);
-                $id = $property->getValue($object);
-            }
+        $getter = 'get'.ucfirst(strtolower($metadata->getId()));
+        if (!method_exists($object, $getter)) {
+            throw new \RuntimeException(
+                sprintf(
+                    'The class "%s" must have a "%s" method for accessing the property mapped as the id field (%s)',
+                    get_class($object),
+                    $getter,
+                    $metadata->getId()
+                )
+            );
         }
 
-        return $id;
-    }
-
-    /**
-     * @param string $className
-     * @return string
-     */
-    protected function getPrefix($className)
-    {
-        $reader = new AnnotationReader();
-        $reflClass = new ReflectionClass($className);
-        $prefixAnnotation = $reader->getClassAnnotation($reflClass, 'Tystr\RedisOrm\Annotations\Prefix');
-
-        return null === $prefixAnnotation->value ? $reflClass->getShortName() : $prefixAnnotation->value;
+        return $object->$getter();
     }
 
     /**

@@ -5,7 +5,8 @@
     "keywords" : [ "redis", "orm", "redis-orm", "key", "value"],
     "require": {
         "predis/predis": "~1.0",
-        "doctrine/annotations": "~1.2"
+        "doctrine/annotations": "~1.2",
+        "symfony/config": "~2.5"
     },
     "require-dev": {
         "phpunit/phpunit": "4.1.*",
