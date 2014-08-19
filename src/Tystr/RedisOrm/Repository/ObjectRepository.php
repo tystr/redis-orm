@@ -11,6 +11,8 @@ use DateTime;
 use Tystr\RedisOrm\Annotations\Date;
 use Tystr\RedisOrm\Annotations\Index;
 use Tystr\RedisOrm\Annotations\SortedIndex;
+use Tystr\RedisOrm\DataTransformer\DataTypes;
+use Tystr\RedisOrm\DataTransformer\TimestampToDatetimeTransformer;
 use Tystr\RedisOrm\Exception\InvalidArgumentException;
 use Tystr\RedisOrm\Hydrator\ObjectHydrator;
 use Tystr\RedisOrm\Hydrator\ObjectHydratorInterface;
@@ -81,9 +83,9 @@ class ObjectRepository
         $originalData = $this->redis->hgetall($key);
         $this->redis->hmset(
             $key,
-            $this->hydrator->toArray($object, $metadata)
+            $newData = $this->hydrator->toArray($object, $metadata)
         );
-        $this->handleProperties($object, $metadata, $originalData);
+        $this->handleProperties($object, $metadata, $originalData, $newData);
     }
 
     /**
@@ -114,8 +116,9 @@ class ObjectRepository
      * @param object   $object
      * @param Metadata $metadata
      * @param array    $originalData
+     * @param array    $newData
      */
-    protected function handleProperties($object, Metadata $metadata, array $originalData)
+    protected function handleProperties($object, Metadata $metadata, array $originalData, array $newData)
     {
         $reflClass = new ReflectionClass($object);
         foreach ($metadata->getIndexes() as $propertyName => $keyName) {
@@ -123,7 +126,7 @@ class ObjectRepository
         }
 
         foreach ($metadata->getSortedIndexes() as $propertyName => $keyName) {
-            $this->handleSortedIndex($reflClass, $object, $propertyName, $keyName, $metadata, $originalData);
+            $this->handleSortedIndex($reflClass, $object, $propertyName, $keyName, $metadata, $newData);
         }
     }
 
@@ -156,49 +159,25 @@ class ObjectRepository
      * @param object          $object
      * @param string          $propertyName
      * @param Metadata        $metadata
-     * @param array           $originalData
+     * @param array           $newData
      */
-    protected function handleSortedIndex(ReflectionClass $reflClass, $object, $propertyName, $keyName, Metadata $metadata, array $originalData)
+    protected function handleSortedIndex(ReflectionClass $reflClass, $object, $propertyName, $keyName, Metadata $metadata, array $newData)
     {
         $property = $reflClass->getProperty($propertyName);
         $property->setAccessible(true);
-        $value = $property->getValue($object);
-        if (null === $value) {
-            $this->redis->zrem($this->keyNamingStrategy->getKeyName(array($keyName, $value)), $this->getIdForClass($object, $metadata));
+        $mapping = $metadata->getPropertyMapping($propertyName);
+
+        if (!isset($newData[$mapping['name']]) || null === $newData[$mapping['name']]) {
+            $this->redis->zrem($this->keyNamingStrategy->getKeyName(array($keyName, $newData[$mapping['name']])), $this->getIdForClass($object, $metadata));
 
             return;
         }
 
-        // @TODO FIGURE OUT IF DATE OR HOW TO HANDLE THIS
-        //if ($annotation instanceof Date) {
-            $value = $this->transformDateValue($value);
-        //}
-
         $this->redis->zadd(
             $this->keyNamingStrategy->getKeyName(array($keyName)),
-            $value,
+            $newData[$mapping['name']],
             $this->getIdForClass($object, $metadata)
         );
-    }
-
-    /**
-     * @TODO This doesn't belong in here
-     *
-     * @param DateTime $value
-     * @return int
-     */
-    protected function transformDateValue($value)
-    {
-        if (!$value instanceof DateTime) {
-            throw new \RuntimeException(
-                sprintf(
-                    'The value of fields with the "Tystr\RedisOrm\Annotations\Date" annotation must be \DateTime, found "%s" instead.',
-                    is_object($value) ? get_class($value): gettype($value)
-                )
-            );
-        }
-
-        return $value->format('U');
     }
 
     /**
