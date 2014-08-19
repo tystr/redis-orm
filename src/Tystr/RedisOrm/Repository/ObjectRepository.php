@@ -55,13 +55,18 @@ class ObjectRepository
      * @param Client                     $redis
      * @param KeyNamingStrategyInterface $keyNamingStrategy
      * @param string                     $className
+     * @param ObjectHydratorInterface    $objectHydrator
      */
-    public function __construct(Client $redis, KeyNamingStrategyInterface $keyNamingStrategy, $className)
-    {
+    public function __construct(
+        Client $redis,
+        KeyNamingStrategyInterface $keyNamingStrategy,
+        $className,
+        ObjectHydratorInterface $objectHydrator = null
+    ) {
         $this->redis = $redis;
         $this->keyNamingStrategy = $keyNamingStrategy;
         $this->className = $className;
-        $this->hydrator = new ObjectHydrator();
+        $this->hydrator = $objectHydrator ?: new ObjectHydrator();
     }
 
     /**

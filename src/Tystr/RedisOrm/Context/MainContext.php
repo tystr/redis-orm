@@ -29,8 +29,7 @@ class MainContext extends BaseContext
         $this->repository = new ObjectRepository(
             $this->redis,
             $keyNamingStrategy,
-            'Tystr\RedisOrm\Test\Model\Car',
-            'cars'
+            'Tystr\RedisOrm\Test\Model\Car'
         );
     }
 
