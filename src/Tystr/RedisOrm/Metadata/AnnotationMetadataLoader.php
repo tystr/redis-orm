@@ -124,7 +124,7 @@ class AnnotationMetadataLoader extends Loader
                 } elseif ($annotation instanceof Field) {
                     $this->metadata->addPropertyMapping(
                         $property->getName(),
-                        ['type' => $annotation->type, 'name' => $annotation->name]
+                        array('type' => $annotation->type, 'name' => $annotation->name)
                     );
                 }
             }
@@ -137,7 +137,7 @@ class AnnotationMetadataLoader extends Loader
      */
     protected function validateMetadata(Metadata $metadata)
     {
-        $errors = [];
+        $errors = array();
         if (null == $metadata->getId()) {
             $errors[] = 'Id cannot be null.';
         }
