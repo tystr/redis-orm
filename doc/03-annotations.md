@@ -11,6 +11,23 @@ Each class must have One `@Id` annotated property. The value of this property wi
 Note: It's up to you to ensure that this is some unique value for each of your objects. Otherwise, you will see that
 saving objects with the same id will overwrite the entries in the indexes and the key containing the data for the object.
 
+## @Field
+Any properties you want to be stored in redis must be annotated with this annotation. You may specify the type as one of
+the following:
+
+    string
+    integer
+    double
+    boolean
+    date
+
+If you wish to customize the name of the field, to may do so.
+
+    /**
+     * @Field(name="some_property", type="string")
+     */
+     protected $someProperty;
+
 ## @Index
 Define this annotation on fields by which you want to be able to search.
 The `@Index` annotation indicates that a key will be created with the name and value of this property as the key name.

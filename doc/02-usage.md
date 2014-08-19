@@ -10,27 +10,30 @@ First, you will need to define some mapping metadata on your models:
 use Tystr\RedisOrm\Annotations\Id;
 use Tystr\RedisOrm\Annotations\Index;
 use Tystr\RedisOrm\Annotations\Date;
+use Tystr\RedisOrm\Annotations\Field;
 
 /**
  * @Prefix("cars")
  */
 class Car
 {
-
     /**
      * @var int
+     * @Field(type="integer")
      * @Id
      */
     protected $id;
     
     /**
      * @var string
+     * @Field(type="string")
      * @Index
      */
     protected $name;
     
     /**
      * @var \DateTime
+     * @Field(type="date")
      * @Date
      */
     protected $createdAt;
