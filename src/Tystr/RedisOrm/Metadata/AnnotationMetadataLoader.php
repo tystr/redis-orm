@@ -7,10 +7,13 @@ use Symfony\Component\Config\Loader\Loader;
 use Symfony\Component\Config\ConfigCache;
 use ReflectionClass;
 use ReflectionProperty;
+use Tystr\RedisOrm\Annotations\Field;
 use Tystr\RedisOrm\Annotations\Id;
 use Tystr\RedisOrm\Annotations\Index;
 use Tystr\RedisOrm\Annotations\Prefix;
 use Tystr\RedisOrm\Annotations\SortedIndex;
+use Tystr\RedisOrm\Annotations\Type;
+use Tystr\RedisOrm\Exception\InvalidMetadataException;
 use Tystr\RedisOrm\Metadata\Metadata;
 
 /**
@@ -60,6 +63,16 @@ class AnnotationMetadataLoader extends Loader
 
         $this->loadClassAnnotations($reader, $reflClass);
         $this->loadPropertyAnnotations($reader, $reflClass);
+        $errors = $this->validateMetadata($this->metadata);
+        if (count($errors) > 0) {
+            throw new InvalidMetadataException(
+                sprintf(
+                    'The loaded metadata for resource "%s" is invalid: %s',
+                    $resource,
+                    implode(', ', $errors)
+                )
+            );
+        }
 
         $code = "<?php\n\nreturn ".var_export($this->metadata, true).';';
         $cache->write($code);
@@ -108,9 +121,32 @@ class AnnotationMetadataLoader extends Loader
                     );
                 } elseif ($annotation instanceof Id) {
                     $this->metadata->setId($property->getName());
+                } elseif ($annotation instanceof Field) {
+                    $this->metadata->addPropertyMapping(
+                        $property->getName(),
+                        ['type' => $annotation->type, 'name' => $annotation->name]
+                    );
                 }
             }
         }
+    }
+
+    /**
+     * @param Metadata $metadata
+     * @return array
+     */
+    protected function validateMetadata(Metadata $metadata)
+    {
+        $errors = [];
+        if (null == $metadata->getId()) {
+            $errors[] = 'Id cannot be null.';
+        }
+
+        if (null == $metadata->getPrefix()) {
+            $errors[] = 'Prefix cannot be null.';
+        }
+
+        return $errors;
     }
 
     /**

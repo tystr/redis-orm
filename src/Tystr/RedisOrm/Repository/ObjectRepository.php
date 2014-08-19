@@ -79,10 +79,9 @@ class ObjectRepository
         $metadata = $this->getMetadataFor($this->className);
         $key = $this->keyNamingStrategy->getKeyName(array($metadata->getPrefix(), $this->getIdForClass($object, $metadata)));
         $originalData = $this->redis->hgetall($key);
-
         $this->redis->hmset(
             $key,
-            $this->hydrator->toArray($object)
+            $this->hydrator->toArray($object, $metadata)
         );
         $this->handleProperties($object, $metadata, $originalData);
     }
@@ -97,7 +96,7 @@ class ObjectRepository
         $key = $this->keyNamingStrategy->getKeyName(array($metadata->getPrefix(), $id));
         $data = $this->redis->hgetall($key);
 
-        return $this->hydrator->hydrate($this->newObject(), $data);
+        return $this->hydrator->hydrate($this->newObject(), $data, $metadata);
     }
 
     /**

@@ -3,8 +3,9 @@
 namespace Tystr\RedisOrm\Hydrator;
 
 use Doctrine\Common\Annotations\Annotation;
-use Doctrine\Common\Annotations\AnnotationReader;
-use Tystr\RedisOrm\Annotations\Date;
+use Tystr\RedisOrm\DataTransformer\TimestampToDatetimeTransformer;
+use Tystr\RedisOrm\DataTransformer\DataTypes;
+use Tystr\RedisOrm\Metadata\Metadata;
 
 /**
  * @author Tyler Stroud <tyler@tylerstroud.com>
@@ -12,69 +13,79 @@ use Tystr\RedisOrm\Annotations\Date;
 class ObjectHydrator implements ObjectHydratorInterface
 {
     /**
-     * @param object $user
-     * @param array  $data
+     * @param object   $object
+     * @param array    $data
+     * @param Metadata $metadata
      * @return object
      */
-    public function hydrate($object, array $data)
+    public function hydrate($object, array $data, Metadata $metadata)
     {
         $reflClass = new \ReflectionClass(get_class($object));
-        $reader = new AnnotationReader();
         foreach ($reflClass->getProperties() as $property) {
-            $annotations = $reader->getPropertyAnnotations($property);
-            foreach ($annotations as $annotation) {
-                $key = $this->getKeyNameFromAnnotation($property, $annotation);
-                if (isset($data[$key])) {
-                    if ($annotation instanceof Date) {
-                        $property->setAccessible(true);
-                        $property->setValue($object, new \DateTime('@'.(int) $data[$key]));
-                        unset($data[$key]);
-                    } else {
-                        $property->setAccessible(true);
-                        $property->setValue($object, $data[$key]);
-                        unset($data[$key]);
-                    }
-                }
-            }
+            $mapping = $metadata->getPropertyMapping($property->getName());
+            $property->setAccessible(true);
+            $property->setValue($object, $this->transformValue($mapping['type'], $data[$mapping['name']]));
         }
-
 
         return $object;
     }
 
     /**
-     * @param object $object
+     * @param object   $object
+     * @param Metadata $metadata
+     * @return array
      */
-    public function toArray($object)
+    public function toArray($object, Metadata $metadata)
     {
         $reflClass = new \ReflectionClass(get_class($object));
-        $reader = new AnnotationReader();
         $data = array();
         foreach ($reflClass->getProperties() as $property) {
-            $annotations = $reader->getPropertyAnnotations($property);
-            foreach ($annotations as $annotation) {
-                $key = $this->getKeyNameFromAnnotation($property, $annotation);
-                $property->setAccessible(true);
-                $value = $property->getValue($object);
-                if ($annotation instanceof Date) {
-                    // @todo type check for datetiem
-                    $data[$key] = $value instanceof \DateTime ? $value->format('U') : $value;
-                } else {
-                    $data[$key] = $property->getValue($object);
-                }
+            $mapping = $metadata->getPropertyMapping($property->getName());
+            if (null == $mapping) {
+                continue;
             }
+            $property->setAccessible(true);
+            $data[$mapping['name']] = $this->reverseTransformValue($mapping['type'], $property->getValue($object));
         }
 
         return $data;
     }
 
     /**
-     * @param \ReflectionProperty $property
-     * @param Annotation $annotation
-     * @return string
+     * @param string $type
+     * @param mixed $value
+     * @return mixed
      */
-    protected function getKeyNameFromAnnotation(\ReflectionProperty $property, Annotation $annotation)
+    protected function transformValue($type, $value)
     {
-        return null === $annotation->name ? $property->getName() : $annotation->name;
+        switch ($type) {
+            case DataTypes::STRING:
+                return strval($value);
+            case DataTYpes::INTEGER:
+                return intval($value);
+            case DataTypes::DOUBLE:
+                return doubleval($value);
+            case DataTYpes::BOOLEAN:
+                return boolval($value);
+            default:
+                // @todo Lookup custom data transformer for custom configured types?
+                return null;
+        }
+    }
+
+    /**
+     * @param string $type
+     * @param mixed $value
+     * @return mixed|string
+     */
+    protected function reverseTransformValue($type, $value)
+    {
+        if ($type == DataTypes::DATE && $value instanceof \DateTime) {
+            $transformer = new TimestampToDatetimeTransformer();
+
+            return $transformer->reverseTransform($value);
+        }
+
+        return $value;
     }
 }

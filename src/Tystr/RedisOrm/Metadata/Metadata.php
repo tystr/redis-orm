@@ -2,6 +2,9 @@
 
 namespace Tystr\RedisOrm\Metadata;
 
+use Tystr\RedisOrm\DataTransformer\DataTypes;
+use Tystr\RedisOrm\Exception\InvalidArgumentException;
+
 /**
  * @author Tyler Stroud <tyler@tylerstroud.com>
  */
@@ -28,6 +31,11 @@ class Metadata
     protected $sortedIndexes = array();
 
     /**
+     * @var array
+     */
+    protected $propertyMappings = array();
+
+    /**
      * @return array
      */
     public function getIndexes()
@@ -50,6 +58,15 @@ class Metadata
     public function addIndex($property, $index)
     {
         $this->indexes[$property] = $index;
+    }
+
+    /**
+     * @param string $name
+     * @return bool
+     */
+    public function hasIndex($name)
+    {
+        return isset($this->indexes[$name]);
     }
 
     /**
@@ -94,6 +111,19 @@ class Metadata
     }
 
     /**
+     * @param string $propertyName
+     * @return string|null
+     */
+    public function getSortedIndex($propertyName)
+    {
+        if (isset($this->sortedIndexes[$propertyName])) {
+            return $this->sortedIndexes[$propertyName];
+        }
+
+        return null;
+    }
+
+    /**
      * @return string
      */
     public function getId()
@@ -110,6 +140,59 @@ class Metadata
     }
 
     /**
+     * @return array
+     */
+    public function getPropertyMappings()
+    {
+        return $this->propertyMappings;
+    }
+
+    /**
+     * @param array $propertyMappings
+     */
+    public function setPropertyMappings(array $propertyMappings)
+    {
+        $this->propertyMappings = $propertyMappings;
+    }
+
+    /**
+     * @param string $propertyName
+     * @param string $mapping
+     */
+    public function addPropertyMapping($propertyName, $mapping)
+    {
+        if (!isset($mapping['type'])) {
+            throw new InvalidArgumentException(sprintf('Invalid @Field mapping for property "%s".', $propertyName));
+        }
+        if (!DataTypes::isValidDataType($mapping['type'])) {
+            throw new InvalidArgumentException(
+                sprintf(
+                    'Invalid @Field mapping for property "%s": the specified type "%s" is invalid.',
+                    $propertyName,
+                    $mapping['type']
+                )
+            );
+        }
+        $this->propertyMappings[$propertyName]['type'] = $mapping['type'];
+        $this->propertyMappings[$propertyName]['name'] = isset($mapping['name']) && null !== $mapping['name'] ?
+            $mapping['name'] : $propertyName;
+    }
+
+    /**
+     * @param string $propertyName
+     * @return null
+     */
+    public function getPropertyMapping($propertyName)
+    {
+        if (isset($this->propertyMappings[$propertyName])) {
+            return $this->propertyMappings[$propertyName];
+        }
+
+        return null;
+    }
+
+
+    /**
      * @param array $array
      * @return Metadata
      */
@@ -120,6 +203,7 @@ class Metadata
         $metadata->setPrefix($array['prefix']);
         $metadata->setIndexes($array['indexes']);
         $metadata->setSortedIndexes($array['sortedIndexes']);
+        $metadata->setPropertyMappings($array['propertyMappings']);
 
         return $metadata;
     }

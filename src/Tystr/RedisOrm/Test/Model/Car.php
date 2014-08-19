@@ -4,9 +4,11 @@ namespace Tystr\RedisOrm\Test\Model;
 
 use DateTime;
 use Tystr\RedisOrm\Annotations\Date;
+use Tystr\RedisOrm\Annotations\Field;
 use Tystr\RedisOrm\Annotations\Index;
 use Tystr\RedisOrm\Annotations\Id;
 use Tystr\RedisOrm\Annotations\Prefix;
+use Tystr\RedisOrm\Annotations\Type;
 
 /**
  * @Prefix("cars")
@@ -16,36 +18,42 @@ class Car
 {
     /**
      * @var string
+     * @Field(type="integer")
      * @Id
      */
     protected $id;
 
     /**
      * @var string
+     * @Field(type="string")
      * @Index
      */
     protected $make;
 
     /**
      * @var string
+     * @Field(type="string")
      * @Index
      */
     protected $model;
 
     /**
      * @var string
+     * @Field(type="string")
      * @Index(name="engine_type")
      */
     protected $engineType;
 
     /**
      * @var string
+     * @Field(type="string")
      * @Index
      */
     protected $color;
 
     /**
      * @var DateTime
+     * @Field(type="date", name="manufacture_date")
      * @Date(name="manufacture_date")
      */
     protected $manufactureDate;
