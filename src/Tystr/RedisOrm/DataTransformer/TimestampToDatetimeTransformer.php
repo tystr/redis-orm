@@ -16,17 +16,7 @@ class TimestampToDatetimeTransformer
      */
     public function transform($value)
     {
-        $dateTime = DateTime::createFromFormat('U', $value);
-        if (false === $dateTime) {
-            throw new InvalidArgumentException(
-                sprintf(
-                    'Cannot transform "%s" into a DateTime object. The value must be a valid unix timestamp',
-                    $value
-                )
-            );
-        }
-
-        return $dateTime;
+        return DateTime::createFromFormat('U', $value);
     }
 
     /**
