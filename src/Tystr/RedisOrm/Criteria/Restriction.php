@@ -5,7 +5,7 @@ namespace Tystr\RedisOrm\Criteria;
 /**
  * @author Tyler Stroud <tyler@tylerstroud.com>
  */
-abstract class Restriction
+abstract class Restriction implements RestrictionInterface
 {
     /**
      * @var string
@@ -55,7 +55,7 @@ abstract class Restriction
      * @param Restriction $restriction
      * @return bool
      */
-    public function equals(Restriction $restriction)
+    public function equals(RestrictionInterface $restriction)
     {
         return get_class($restriction) === get_class($this) &&
             $restriction->getKey() === $this->getKey() &&
