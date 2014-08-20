@@ -109,6 +109,9 @@ class ObjectRepository
         $metadata = $this->getMetadataFor($this->className);
         $key = $this->keyNamingStrategy->getKeyName(array($metadata->getPrefix(), $id));
         $data = $this->redis->hgetall($key);
+        if (empty($data)) {
+            return null;
+        }
 
         return $this->hydrator->hydrate($this->newObject(), $data, $metadata);
     }
@@ -255,17 +258,18 @@ class ObjectRepository
         $mapping = $metadata->getPropertyMapping($propertyName);
         if (DataTypes::HASH == $mapping['type']) {
             foreach ($value as $key => $val) {
-                if (null === $val && isset($originalData[$keyName][$key])) {
+                if ((null === $val && isset($originalData[$mapping['name'].':'.$key])) ||
+                    (isset($originalData[$mapping['name'].':'.$key]) &&  $originalData[$mapping['name'].':'.$key] != $val)
+                ) {
                     $this->redis->srem(
-                        $this->keyNamingStrategy->getKeyName(array($key, $val)),
-                        $this->getIdForClass($object, $metadata)
-                    );
-                } else {
-                    $this->redis->sadd(
-                        $this->keyNamingStrategy->getKeyName(array($key, $val)),
+                        $this->keyNamingStrategy->getKeyName(array($key, $originalData[$mapping['name'].':'.$key])),
                         $this->getIdForClass($object, $metadata)
                     );
                 }
+                $this->redis->sadd(
+                    $this->keyNamingStrategy->getKeyName(array($key, $val)),
+                    $this->getIdForClass($object, $metadata)
+                );
             }
 
             return;
@@ -276,10 +280,9 @@ class ObjectRepository
                 $key,
                 $this->getIdForClass($object, $metadata)
             );
-        } else {
-            $key = $this->keyNamingStrategy->getKeyName(array($keyName, $value));
-            $this->redis->sadd($key, $this->getIdForClass($object, $metadata));
         }
+        $key = $this->keyNamingStrategy->getKeyName(array($keyName, $value));
+        $this->redis->sadd($key, $this->getIdForClass($object, $metadata));
     }
 
     /**
