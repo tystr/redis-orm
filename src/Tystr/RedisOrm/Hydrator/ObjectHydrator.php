@@ -23,7 +23,36 @@ class ObjectHydrator implements ObjectHydratorInterface
         $reflClass = new \ReflectionClass(get_class($object));
         foreach ($reflClass->getProperties() as $property) {
             $mapping = $metadata->getPropertyMapping($property->getName());
+            if (null == $mapping) {
+                continue;
+            }
             $property->setAccessible(true);
+            if (DataTypes::COLLECTION == $mapping['type']) {
+                $value = array();
+                foreach (array_keys($data) as $key) {
+                    if (0 === stripos($key, $mapping['name'].':')) {
+                        $value[] = $data[$key];
+                    }
+                }
+                $property->setValue($object, $value);
+
+                continue;
+            } elseif (DataTypes::HASH == $mapping['type']) {
+                $value = array();
+                foreach (array_keys($data) as $key) {
+                    if (0 === stripos($key, $mapping['name'].':')) {
+                        $newKey = substr($key, strrpos($key, ':')+1);
+                        $value[$newKey] = $data[$key];
+                    }
+                }
+                $property->setValue($object, $value);
+
+                continue;
+            }
+
+            if (!isset($data[$mapping['name']])) {
+                $data[$mapping['name']] = null;
+            }
             $property->setValue($object, $this->transformValue($mapping['type'], $data[$mapping['name']]));
         }
 
@@ -45,7 +74,13 @@ class ObjectHydrator implements ObjectHydratorInterface
                 continue;
             }
             $property->setAccessible(true);
-            $data[$mapping['name']] = $this->reverseTransformValue($mapping['type'], $property->getValue($object));
+            if ($mapping['type'] == DataTypes::COLLECTION || DataTypes::HASH == $mapping['type']) {
+                foreach ((array)$property->getValue($object) as $key => $value) {
+                    $data[$mapping['name'].':'.$key] = $value;
+                }
+            } else {
+                $data[$mapping['name']] = $this->reverseTransformValue($mapping['type'], $property->getValue($object));
+            }
         }
 
         return $data;
@@ -67,6 +102,8 @@ class ObjectHydrator implements ObjectHydratorInterface
                 return doubleval($value);
             case DataTYpes::BOOLEAN:
                 return boolval($value);
+            case DataTypes::COLLECTION:
+                return (array) $value;
             default:
                 // @todo Lookup custom data transformer for custom configured types?
                 return null;

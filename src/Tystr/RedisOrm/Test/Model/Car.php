@@ -59,6 +59,18 @@ class Car
     protected $manufactureDate;
 
     /**
+     * @var array
+     * @Field(type="collection")
+     */
+    protected $owners;
+
+    /**
+     * @var array
+     * @Field(type="hash")
+     */
+    protected $attributes;
+
+    /**
      * @return string
      */
     public function getColor()
@@ -152,5 +164,55 @@ class Car
     public function setManufactureDate(DateTime $manufactureDate = null)
     {
         $this->manufactureDate = $manufactureDate;
+    }
+
+    /**
+     * @return array
+     */
+    public function getOwners()
+    {
+        return $this->owners;
+    }
+
+    /**
+     * @param array $owners
+     */
+    public function setOwners(array $owners)
+    {
+        $this->owners = $owners;
+    }
+
+    /**
+     * @return array
+     */
+    public function getAttributes()
+    {
+        return $this->attributes;
+    }
+
+    /**
+     * @param array $attributes
+     */
+    public function setAttributes(array $attributes)
+    {
+        $this->attributes = $attributes;
+    }
+
+    /**
+     * @param string $key
+     * @param mixed  $value
+     */
+    public function setAttribute($key, $value)
+    {
+        $this->attributes[$key] = $value;
+    }
+
+    /**
+     * @param string $key
+     * @return null
+     */
+    public function getAttribute($key)
+    {
+        return isset($this->attributes[$key]) ? $this->attributes[$key] : null;
     }
 }

@@ -5,8 +5,6 @@ Redis ORM
 This is a small object mapper library designed to assist in storing objects into a [Redis][1] database
 while maintaining indexes for the fields of the object for efficient querying and filtering.
 
-Currently, only flat objects are supported (e.g. no embedded objects).
-
 This project is under development. Use at your own risk.
 
 TODO: 

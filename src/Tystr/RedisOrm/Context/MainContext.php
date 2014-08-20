@@ -38,17 +38,44 @@ class MainContext extends BaseContext
      */
     public function theFollowingCars(TableNode $table)
     {
-        $i = 1;
         foreach ($table->getHash() as $data) {
             $car = new Car();
-            $car->setId($i);
+            $car->setId($data['id']);
             $car->setColor($data['color']);
             $car->setEngineType($data['engine_type']);
             $car->setMake($data['make']);
             $car->setModel($data['model']);
             $car->setManufactureDate(new \DateTime('2013-01-01'));
             $this->repository->save($car);
-            $i++;
+        }
+    }
+    /**
+     * @Given the car with id :id has the property :propertyName with the following values:
+     */
+    public function theCarWithIdHasThePropertyWithTheFollowingValues($id, $propertyName, TableNode $values)
+    {
+        $car = $this->repository->find($id);
+        $data = array();
+        foreach ($values->getRowsHash() as $key => $value) {
+            $data[$key] = $value;
+        }
+        $setter = 'set'.ucfirst(strtolower($propertyName));
+        $car->$setter($data);
+        $this->repository->save($car);
+    }
+
+
+    /**
+     * @Then the car with the id :id should have property :propertyName with the following values:
+     */
+    public function theCarWithTheIdShouldHavePropertyWithTheFollowingValues($id, $propertyName, TableNode $values)
+    {
+        $car = $this->repository->find($id);
+        $getter = 'get'.ucfirst(strtolower($propertyName));
+        $data = $car->$getter();
+        foreach ($values->getRowsHash() as $key => $value) {
+            assertTrue(isset($data[$key]));
+            assertEquals($value, $data[$key]);
         }
     }
 

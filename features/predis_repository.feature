@@ -3,8 +3,8 @@ Feature: Repository persistence
 
   Scenario: Saving an object with "indexed" properties
     Given the following Car:
-      | make  | model   | engine_type | color |
-      | Tesla | Model S | V8          | red   |
+      | id | make  | model   | engine_type | color |
+      | 1  | Tesla | Model S | V8          | red   |
     Then there should be 6 keys in the database
     And the following keys should exist:
       | name           | value |
@@ -15,19 +15,30 @@ Feature: Repository persistence
 
   Scenario: Finding an object by it's id
     Given the following Car:
-      | make  | model   | engine_type | color |
-      | Tesla | Model S | V8          | red   |
+      | id | make  | model   | engine_type | color |
+      | 1  | Tesla | Model S | V8          | red   |
+    And the car with id "1" has the property "attributes" with the following values:
+      | is_favorite | yes |
+      | is_slow     | no  |
+      | is_awd      | yes |
+    And the car with id "1" has the property "owners" with the following values:
+      | 0 | one |
+      | 1 | two |
     When I find a Car by id 1
     Then there should be 1 car
     And the car with the id 1 should have the following properties:
-      | make  | model   | engine_type | color |
-      | Tesla | Model S | V8          | red   |
+      | id | make  | model   | engine_type | color |
+      | 1  | Tesla | Model S | V8          | red   |
+    And the car with the id 1 should have property "attributes" with the following values:
+      | is_favorite | yes |
+      | is_slow     | no  |
+      | is_awd      | yes |
 
   Scenario: Saving an object with null property values removes the id from index field for that property
     Given the following Car:
-      | make  | model   | engine_type | color |
-      | Tesla   | Model S | V8          | red    |
-      | Porsche | 911     | V8          | yellow |
+      | id | make    | model   | engine_type | color  |
+      | 1  | Tesla   | Model S | V8          | red    |
+      | 2  | Porsche | 911     | V8          | yellow |
     Then there should be 2 items in the "manufacture_date" key
     When I set the manufacture date to null
     Then there should be 1 items in the "manufacture_date" key

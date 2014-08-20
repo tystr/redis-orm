@@ -14,6 +14,16 @@ final class DataTypes
     const BOOLEAN = 'boolean';
 
     /**
+     * Denotes a numeric indexed array
+     */
+    const COLLECTION = 'collection';
+
+    /**
+     * Denotes an associative array
+     */
+    const HASH = 'hash';
+
+    /**
      * @param string $dataType
      * @return bool
      */

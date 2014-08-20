@@ -20,6 +20,11 @@ the following:
     double
     boolean
     date
+    collection
+    hash
+
+The `collection` type denotes a numeric indexed array.
+The `hash` type denotes an associative array.
 
 If you wish to customize the name of the field, to may do so.
 
