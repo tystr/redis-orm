@@ -45,7 +45,7 @@ class Criteria implements CriteriaInterface
     /**
      * @param Restriction $restriction
      */
-    public function addRestriction(Restriction $restriction)
+    public function addRestriction(RestrictionInterface $restriction)
     {
         $this->restrictions->add($restriction);
     }
@@ -53,7 +53,7 @@ class Criteria implements CriteriaInterface
     /**
      * @param Restriction $restriction
      */
-    public function removeRestriction(Restriction $restriction)
+    public function removeRestriction(RestrictionInterface $restriction)
     {
         $this->restrictions->removeElement($restriction);
     }
@@ -62,7 +62,7 @@ class Criteria implements CriteriaInterface
      * @param Restriction $expectedRestriction
      * @return bool
      */
-    public function hasRestriction(Restriction $expectedRestriction)
+    public function hasRestriction(RestrictionInterface $expectedRestriction)
     {
         foreach ($this->restrictions as $restriction) {
             if ($restriction->equals($expectedRestriction)) {

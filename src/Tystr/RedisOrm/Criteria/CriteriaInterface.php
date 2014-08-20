@@ -22,18 +22,18 @@ interface CriteriaInterface
     /**
      * @param Restriction $restriction
      */
-    public function addRestriction(Restriction $restriction);
+    public function addRestriction(RestrictionInterface $restriction);
 
     /**
      * @param Restriction $restriction
      */
-    public function removeRestriction(Restriction $restriction);
+    public function removeRestriction(RestrictionInterface $restriction);
 
     /**
      * @param Restriction $restriction
      * @return bool
      */
-    public function hasRestriction(Restriction $restriction);
+    public function hasRestriction(RestrictionInterface $restriction);
 
     /**
      * @return string
