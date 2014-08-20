@@ -104,6 +104,13 @@ class ObjectHydrator implements ObjectHydratorInterface
                 return boolval($value);
             case DataTypes::COLLECTION:
                 return (array) $value;
+            case DataTypes::DATE:
+                if (null === $value || '' === $value) {
+                    return null;
+                }
+                $transformer = new TimestampToDatetimeTransformer();
+
+                return $transformer->transform($value);
             default:
                 // @todo Lookup custom data transformer for custom configured types?
                 return null;

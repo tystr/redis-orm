@@ -53,6 +53,7 @@ class Car
 }
 
 ```
+## Saving Objects
 
 Now, the repository class will know which indexes to create and what to use as the values.
 
@@ -71,6 +72,15 @@ $car = new Car(123, 'Tesla', new \DateTime());
 $repository->save($car);
 ```
 
-TODO: Finding objects
+## Finding Objects
+```PHP
+<?php
+
+$criteria = new Tystr\RedisOrm\Criteria\Criteria();
+$criteria->addRestriction(Tystr\RedirOrm\Criteria\Restrictions::equalTo('id', '123));
+
+// This returns an array of hydrated objects that match, or an empty array if no matches are found
+$results = $repository->findBy($criteria);
+```
 
 Next: [Annotations](03-annotations.md)

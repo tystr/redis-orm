@@ -2,9 +2,14 @@
 namespace Tystr\RedisOrm\Context;
 
 use Behat\Gherkin\Node\TableNode;
+use Doctrine\Common\Collections\ArrayCollection;
+use Tystr\RedisOrm\Criteria\Criteria;
 use Tystr\RedisOrm\KeyNamingStrategy\ColonDelimitedKeyNamingStrategy;
 use Tystr\RedisOrm\Repository\ObjectRepository;
 use Tystr\RedisOrm\Test\Model\Car;
+use Tystr\RedisOrm\Test\Model\User;
+use Tystr\RedisOrm\Test\Model\UserList;
+use Tystr\RedisOrm\Criteria\Restrictions;
 
 /**
  * @author Tyler Stroud <tyler@tylerstroud.com>
@@ -15,6 +20,16 @@ class MainContext extends BaseContext
      * @var ObjectRepository
      */
     protected $repository;
+
+    /**
+     * @var ObjectRepository
+     */
+    protected $userRepository;
+
+    /**
+     * @var array
+     */
+    protected $lists = array();
 
     /**
      * @var array|Car[]
@@ -30,6 +45,11 @@ class MainContext extends BaseContext
             $this->redis,
             $keyNamingStrategy,
             'Tystr\RedisOrm\Test\Model\Car'
+        );
+        $this->userRepository = new ObjectRepository(
+            $this->redis,
+            $keyNamingStrategy,
+            'Tystr\RedisOrm\Test\Model\User'
         );
     }
 
@@ -160,6 +180,62 @@ class MainContext extends BaseContext
         } else {
             assertEquals($count, $this->redis->zcard($key));
         }
+    }
+
+    /**
+     * @Given the following users:
+     */
+    public function theFollowingUsers(TableNode $table)
+    {
+        foreach ($table->getHash() as $row) {
+            $email = $row['email'];
+            unset($row['email']);
+            $dob = $row['dob'];
+            unset($row['dob']);
+            $signup = $row['signup'];
+            unset($row['signup']);
+            $lastOpen = $row['last_open'];
+            unset($row['last_open']);
+            $lastClick = $row['last_click'];
+            unset($row['last_click']);
+
+            $user = new User($email, $row);
+            $user->setDateOfBirth(new \DateTime($dob));
+            $user->setSignupDate(new \DateTime($signup));
+            $user->setLastOpen(new \DateTime($lastOpen));
+            $user->setLastClick(new \DateTime($lastClick));
+            $this->userRepository->save($user);
+        }
+    }
+
+    /**
+     * @Given the list :listName has the following criteria:
+     */
+    public function theListHasTheFollowingCriteria($listName, TableNode $table)
+    {
+        $criteria = new Criteria(new ArrayCollection());
+        foreach ($table->getHash() as $restriction) {
+            if (in_array($restriction['key'], array('signup', 'last_open', 'last_click', 'dob'))) {
+                $value = new \DateTime($restriction['value']);
+                $value = $value->format('U');
+            } else {
+                $value = $restriction['value'];
+            }
+            $method = $restriction['name'];
+            $criteria->addRestriction(
+                Restrictions::$method($restriction['key'], $value)
+            );
+        }
+
+        $this->lists[$listName] = $criteria;
+    }
+
+    /**
+     * @Then the list :listName should have :count users
+     */
+    public function theListShouldHaveRecipients($listName, $count)
+    {
+        assertCount($count, $this->userRepository->findBy($this->lists[$listName]));
     }
 
     /**
