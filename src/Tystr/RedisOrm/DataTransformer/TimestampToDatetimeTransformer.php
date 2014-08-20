@@ -25,6 +25,8 @@ class TimestampToDatetimeTransformer
                 )
             );
         }
+
+        return $dateTime;
     }
 
     /**

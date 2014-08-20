@@ -11,15 +11,22 @@ use DateTime;
 use Tystr\RedisOrm\Annotations\Date;
 use Tystr\RedisOrm\Annotations\Index;
 use Tystr\RedisOrm\Annotations\SortedIndex;
+use Tystr\RedisOrm\Criteria\Criteria;
+use Tystr\RedisOrm\Criteria\CriteriaInterface;
 use Tystr\RedisOrm\DataTransformer\DataTypes;
 use Tystr\RedisOrm\DataTransformer\TimestampToDatetimeTransformer;
 use Tystr\RedisOrm\Exception\InvalidArgumentException;
+use Tystr\RedisOrm\Exception\InvalidCriteriaException;
 use Tystr\RedisOrm\Hydrator\ObjectHydrator;
 use Tystr\RedisOrm\Hydrator\ObjectHydratorInterface;
 use Tystr\RedisOrm\KeyNamingStrategy\KeyNamingStrategyInterface;
 use Tystr\RedisOrm\Metadata\AnnotationMetadataLoader;
 use Tystr\RedisOrm\Metadata\Metadata;
 use Tystr\RedisOrm\Metadata\MetadataRegistry;
+use Tystr\RedisOrm\Criteria\EqualTo;
+use Tystr\RedisOrm\Criteria\LessThan;
+use Tystr\RedisOrm\Criteria\GreaterThan;
+use Tystr\RedisOrm\Query\ZRangeByScore;
 
 /**
  * @author Tyler Stroud <tyler@tylerstroud.com>
@@ -107,6 +114,104 @@ class ObjectRepository
     }
 
     /**
+     * @param CriteriaInterface $criteria
+     * @return array|object[]
+     */
+    public function findBy(CriteriaInterface $criteria)
+    {
+        $ids = $this->findIdsBy($criteria);
+        $results = array();
+        foreach ($ids as $id) {
+            $results[] = $this->find($id);
+        }
+
+        return $results;
+    }
+
+    /**
+     * @param CriteriaInterface $criteria
+     * @throws InvalidCriteriaException
+     * @return array
+     */
+    public function findIdsBy(CriteriaInterface $criteria)
+    {
+        $keys = array();
+        $rangeQueries = array();
+        $restrictions = $criteria->getRestrictions();
+        if ($restrictions->count() == 0) {
+            throw new InvalidCriteriaException('Criteria must have at least 1 restriction, found 0.');
+        }
+
+        foreach ($restrictions as $restriction) {
+            if ($restriction instanceof EqualTo) {
+                $keys[] = $this->keyNamingStrategy->getKeyName(array($restriction->getKey(), $restriction->getValue()));
+            } elseif ($restriction instanceof LessThan) {
+                $key = $restriction->getKey();
+                $query = isset($rangeQueries[$key]) ? $rangeQueries[$key] : new ZRangeByScore($key);
+                $query->setMax($restriction->getValue());
+                $rangeQueries[$key] = $query;
+            } elseif ($restriction instanceof GreaterThan) {
+                $key = $restriction->getKey();
+                $query = isset($rangeQueries[$key]) ? $rangeQueries[$key] : new ZRangeByScore($key);
+                $query->setMin($restriction->getValue());
+                $rangeQueries[$key] = $query;
+            } else {
+                throw new \InvalidArgumentException(
+                    sprintf(
+                        'Either the given restriction is of an invalid type, or the restriction type "%s" has not been implemented.',
+                        get_class($restriction)
+                    )
+                );
+            }
+        }
+
+        if (count($rangeQueries) == 0) {
+            return call_user_func_array(array($this->redis, 'sinter'), array($keys));
+        }
+
+        $tmpKey = md5(time().$criteria->__toString());
+        $keys = array_merge($keys, array_keys($rangeQueries));
+        array_unshift($keys, $tmpKey, count($keys));
+        call_user_func_array(array($this->redis, 'zinterstore'), $keys);
+
+        $this->handleRangeQueries($rangeQueries, $tmpKey);
+
+        return $this->redis->zrange($tmpKey, 0, -1);
+    }
+
+    /**
+     * @param array  $rangeQueries
+     * @param string $key
+     * @return int
+     */
+    protected function handleRangeQueries(array $rangeQueries, $key)
+    {
+        $totalRemoved = 0;
+        foreach ($rangeQueries as $rangeQuery) {
+            if (!$rangeQuery instanceof ZRangeByScore) {
+                throw new \InvalidArgumentException(
+                    sprintf(
+                        'Range queries must be instances of "Tystr\RedisOrm\Query\ZRangeByScore", "%s" given.',
+                        get_class($rangeQuery)
+                    )
+                );
+            }
+
+            $min = $rangeQuery->getMin();
+            if ($min != '-inf') {
+                $totalRemoved += $this->redis->zremrangebyscore($key, '-inf', $min);
+            }
+
+            $max = $rangeQuery->getMax();
+            if ($max != '+inf') {
+                $totalRemoved += $this->redis->zremrangebyscore($key, $max, '+inf');
+            }
+        }
+
+        return $totalRemoved;
+    }
+
+    /**
      * @param string $className
      * @return Metadata
      */
@@ -147,6 +252,24 @@ class ObjectRepository
         $property = $reflClass->getProperty($propertyName);
         $property->setAccessible(true);
         $value = $property->getValue($object);
+        $mapping = $metadata->getPropertyMapping($propertyName);
+        if (DataTypes::HASH == $mapping['type']) {
+            foreach ($value as $key => $val) {
+                if (null === $val && isset($originalData[$keyName][$key])) {
+                    $this->redis->srem(
+                        $this->keyNamingStrategy->getKeyName(array($key, $val)),
+                        $this->getIdForClass($object, $metadata)
+                    );
+                } else {
+                    $this->redis->sadd(
+                        $this->keyNamingStrategy->getKeyName(array($key, $val)),
+                        $this->getIdForClass($object, $metadata)
+                    );
+                }
+            }
+
+            return;
+        }
         if (null === $value && isset($originalData[$keyName])) {
             $key = $this->keyNamingStrategy->getKeyName(array($keyName, $originalData[$keyName]));
             $this->redis->srem(
