@@ -5,7 +5,7 @@ namespace Tystr\RedisOrm\Criteria;
 /**
  * @author Tyler Stroud <tyler@tylerstroud.com>
  */
-class GreaterThan extends Restriction
+class GreaterThan extends Restriction implements GreaterThanInterface
 {
     /**
      * @return int|string

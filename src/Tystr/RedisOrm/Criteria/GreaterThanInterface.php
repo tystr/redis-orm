@@ -5,6 +5,10 @@ namespace Tystr\RedisOrm\Criteria;
 /**
  * @author Tyler Stroud <tyler@tylerstroud.com>
  */
-class EqualTo extends Restriction implements EqualToInterface
+interface GreaterThanInterface
 {
+    /**
+     * @return int
+     */
+    public function getValue();
 }

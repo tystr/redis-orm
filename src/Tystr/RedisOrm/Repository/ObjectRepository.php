@@ -13,6 +13,9 @@ use Tystr\RedisOrm\Annotations\Index;
 use Tystr\RedisOrm\Annotations\SortedIndex;
 use Tystr\RedisOrm\Criteria\Criteria;
 use Tystr\RedisOrm\Criteria\CriteriaInterface;
+use Tystr\RedisOrm\Criteria\EqualToInterface;
+use Tystr\RedisOrm\Criteria\GreaterThanInterface;
+use Tystr\RedisOrm\Criteria\LessThanInterface;
 use Tystr\RedisOrm\DataTransformer\DataTypes;
 use Tystr\RedisOrm\DataTransformer\TimestampToDatetimeTransformer;
 use Tystr\RedisOrm\Exception\InvalidArgumentException;
@@ -23,9 +26,6 @@ use Tystr\RedisOrm\KeyNamingStrategy\KeyNamingStrategyInterface;
 use Tystr\RedisOrm\Metadata\AnnotationMetadataLoader;
 use Tystr\RedisOrm\Metadata\Metadata;
 use Tystr\RedisOrm\Metadata\MetadataRegistry;
-use Tystr\RedisOrm\Criteria\EqualTo;
-use Tystr\RedisOrm\Criteria\LessThan;
-use Tystr\RedisOrm\Criteria\GreaterThan;
 use Tystr\RedisOrm\Query\ZRangeByScore;
 
 /**
@@ -146,14 +146,14 @@ class ObjectRepository
         }
 
         foreach ($restrictions as $restriction) {
-            if ($restriction instanceof EqualTo) {
+            if ($restriction instanceof EqualToInterface) {
                 $keys[] = $this->keyNamingStrategy->getKeyName(array($restriction->getKey(), $restriction->getValue()));
-            } elseif ($restriction instanceof LessThan) {
+            } elseif ($restriction instanceof LessThanInterface) {
                 $key = $restriction->getKey();
                 $query = isset($rangeQueries[$key]) ? $rangeQueries[$key] : new ZRangeByScore($key);
                 $query->setMax($restriction->getValue());
                 $rangeQueries[$key] = $query;
-            } elseif ($restriction instanceof GreaterThan) {
+            } elseif ($restriction instanceof GreaterThanInterface) {
                 $key = $restriction->getKey();
                 $query = isset($rangeQueries[$key]) ? $rangeQueries[$key] : new ZRangeByScore($key);
                 $query->setMin($restriction->getValue());
