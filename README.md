@@ -12,6 +12,11 @@ TODO:
  - Associated objects
  - Use redis transactions
 
+Support
+=======
+
+Freenode IRC: #redis-orm
+
 Installation
 ============
 Add to your project via composer:
