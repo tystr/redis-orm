@@ -31,6 +31,7 @@ class Metadata
     protected $sortedIndexes = array();
 
     /**
+     * keys: name
      * @var array
      */
     protected $propertyMappings = array();
@@ -191,6 +192,20 @@ class Metadata
         return null;
     }
 
+    /**
+     * @param string $mappedName
+     * @return string
+     */
+    public function getMappingForMappedName($mappedName)
+    {
+        foreach ($this->propertyMappings as $propertyName => $mapping) {
+            if ($mappedName === $mapping['name']) {
+                $mapping['propertyName'] = $propertyName;
+
+                return array('mappedName' => $mapping);
+            }
+        }
+    }
 
     /**
      * @param array $array
