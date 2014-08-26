@@ -202,7 +202,7 @@ class Metadata
             if ($mappedName === $mapping['name']) {
                 $mapping['propertyName'] = $propertyName;
 
-                return array('mappedName' => $mapping);
+                return $mapping;
             }
         }
     }
