@@ -170,7 +170,7 @@ class ObjectRepository
                        sprintf('The value "%s" is not a valid format. Must be similar to "5 days ago" or "1 month 15 days ago".', $restriction->getValue())
                    );
                }
-                $query->setMin($value)
+                $query->setMin($value);
                 $rangeQueries[$key] = $query;
             } elseif ($restriction instanceof LessThanXDaysAgoInterface) {
                 $key = $restriction->getKey();
