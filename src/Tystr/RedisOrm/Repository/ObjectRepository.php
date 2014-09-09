@@ -164,7 +164,7 @@ class ObjectRepository
             } elseif ($restriction instanceof GreaterThanXDaysAgoInterface) {
                 $key = $restriction->getKey();
                 $query = isset($rangeQueries[$key]) ? $rangeQueries[$key] : new ZRangeByScore($key);
-                $value = \DateTime::createFromFormat('ago', $restriction->getValue());
+                $value = strtotime($restriction->getValue());
                 if (false === $value) {
                    throw new InvalidRestrictionValue(
                        sprintf('The value "%s" is not a valid format. Must be similar to "5 days ago" or "1 month 15 days ago".', $restriction->getValue())
@@ -175,7 +175,7 @@ class ObjectRepository
             } elseif ($restriction instanceof LessThanXDaysAgoInterface) {
                 $key = $restriction->getKey();
                 $query = isset($rangeQueries[$key]) ? $rangeQueries[$key] : new ZRangeByScore($key);
-                $value = \DateTime::createFromFormat('ago', $restriction->getValue());
+                $value = strtotime($restriction->getValue());
                 if (false === $value) {
                     throw new InvalidRestrictionValue(
                         sprintf('The value "%s" is not a valid format. Must be similar to "5 days ago" or "1 month 15 days ago".', $restriction->getValue())
