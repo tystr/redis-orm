@@ -15,11 +15,14 @@ use Tystr\RedisOrm\Criteria\Criteria;
 use Tystr\RedisOrm\Criteria\CriteriaInterface;
 use Tystr\RedisOrm\Criteria\EqualToInterface;
 use Tystr\RedisOrm\Criteria\GreaterThanInterface;
+use Tystr\RedisOrm\Criteria\GreaterThanXDaysAgoInterface;
 use Tystr\RedisOrm\Criteria\LessThanInterface;
+use Tystr\RedisOrm\Criteria\LessThanXDaysAgoInterface;
 use Tystr\RedisOrm\DataTransformer\DataTypes;
 use Tystr\RedisOrm\DataTransformer\TimestampToDatetimeTransformer;
 use Tystr\RedisOrm\Exception\InvalidArgumentException;
 use Tystr\RedisOrm\Exception\InvalidCriteriaException;
+use Tystr\RedisOrm\Exception\InvalidRestrictionValue;
 use Tystr\RedisOrm\Hydrator\ObjectHydrator;
 use Tystr\RedisOrm\Hydrator\ObjectHydratorInterface;
 use Tystr\RedisOrm\KeyNamingStrategy\KeyNamingStrategyInterface;
@@ -157,6 +160,28 @@ class ObjectRepository
                 $key = $restriction->getKey();
                 $query = isset($rangeQueries[$key]) ? $rangeQueries[$key] : new ZRangeByScore($key);
                 $query->setMin($restriction->getValue());
+                $rangeQueries[$key] = $query;
+            } elseif ($restriction instanceof GreaterThanXDaysAgoInterface) {
+                $key = $restriction->getKey();
+                $query = isset($rangeQueries[$key]) ? $rangeQueries[$key] : new ZRangeByScore($key);
+                $value = \DateTime::createFromFormat('ago', $restriction->getValue());
+                if (false === $value) {
+                   throw new InvalidRestrictionValue(
+                       sprintf('The value "%s" is not a valid format. Must be similar to "5 days ago" or "1 month 15 days ago".', $restriction->getValue())
+                   );
+               }
+                $query->setMin($value->format('U'));
+                $rangeQueries[$key] = $query;
+            } elseif ($restriction instanceof LessThanXDaysAgoInterface) {
+                $key = $restriction->getKey();
+                $query = isset($rangeQueries[$key]) ? $rangeQueries[$key] : new ZRangeByScore($key);
+                $value = \DateTime::createFromFormat('ago', $restriction->getValue());
+                if (false === $value) {
+                    throw new InvalidRestrictionValue(
+                        sprintf('The value "%s" is not a valid format. Must be similar to "5 days ago" or "1 month 15 days ago".', $restriction->getValue())
+                    );
+                }
+                $query->setMax($value->format('U'));
                 $rangeQueries[$key] = $query;
             } else {
                 throw new \InvalidArgumentException(
