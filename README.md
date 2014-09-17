@@ -21,7 +21,7 @@ Installation
 ============
 Add to your project via composer:
 
-    $ composer.phar require tystr/redis-orm:1.0.*
+    $ composer.phar require tystr/redis-orm:1.0.*@dev
 
 Setting up the Development Environment
 ======================================
