@@ -13,13 +13,26 @@ class MetadataRegistry
     protected $metadata;
 
     /**
+     * @var string
+     */
+    protected $cacheDir;
+
+    /**
+     * @param string $cacheDir
+     */
+    public function __construct($cacheDir = '/tmp')
+    {
+        $this->cacheDir = $cacheDir;
+    }
+
+    /**
      * @param string $class
      * @return Metadata
      */
     public function getMetadataFor($class)
     {
         if (!isset($this->metadata[$class])) {
-            $loader = new AnnotationMetadataLoader('/tmp');
+            $loader = new AnnotationMetadataLoader($this->cacheDir);
             $this->metadata[$class] = $loader->load($class);
         }
 
