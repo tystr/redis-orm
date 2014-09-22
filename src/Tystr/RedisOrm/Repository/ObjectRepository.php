@@ -161,7 +161,7 @@ class ObjectRepository
                 $query = isset($rangeQueries[$key]) ? $rangeQueries[$key] : new ZRangeByScore($key);
                 $query->setMin($restriction->getValue());
                 $rangeQueries[$key] = $query;
-            } elseif ($restriction instanceof GreaterThanXDaysAgoInterface) {
+            } elseif ($restriction instanceof LessThanXDaysAgoInterface) {
                 $key = $restriction->getKey();
                 $query = isset($rangeQueries[$key]) ? $rangeQueries[$key] : new ZRangeByScore($key);
                 $value = strtotime($restriction->getValue());
@@ -172,7 +172,7 @@ class ObjectRepository
                }
                 $query->setMin($value);
                 $rangeQueries[$key] = $query;
-            } elseif ($restriction instanceof LessThanXDaysAgoInterface) {
+            } elseif ($restriction instanceof GreaterThanXDaysAgoInterface) {
                 $key = $restriction->getKey();
                 $query = isset($rangeQueries[$key]) ? $rangeQueries[$key] : new ZRangeByScore($key);
                 $value = strtotime($restriction->getValue());
