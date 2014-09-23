@@ -197,7 +197,7 @@ class ObjectRepository
             return call_user_func_array(array($this->redis, 'sinter'), array($keys));
         }
 
-        $tmpKey = md5(time().$criteria->__toString());
+        $tmpKey = 'redis-orm:cache:'.md5(time().$criteria->__toString());
         $keys = array_merge($keys, array_keys($rangeQueries));
         array_unshift($keys, $tmpKey, count($keys));
         call_user_func_array(array($this->redis, 'zinterstore'), $keys);
