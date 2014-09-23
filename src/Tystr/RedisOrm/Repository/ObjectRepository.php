@@ -203,6 +203,7 @@ class ObjectRepository
         call_user_func_array(array($this->redis, 'zinterstore'), $keys);
 
         $this->handleRangeQueries($rangeQueries, $tmpKey);
+        $this->redis->expire($tmpKey, 1200);
 
         return $this->redis->zrange($tmpKey, 0, -1);
     }
