@@ -202,7 +202,16 @@ class ObjectRepository
         }
 
         if (count($rangeQueries) == 0) {
-            return call_user_func_array(array($this->redis, 'sinter'), array($keys));
+            if ($countOnly) {
+                $tmpKey = 'redis-orm:cache:'.md5(time().$criteria->__toString());
+                array_unshift($keys, $tmpKey);
+                call_user_func_array(array($this->redis, 'sinterstore'), $keys);
+                $this->redis->expire($tmpKey, 1200);
+
+                return $this->redis->scard($tmpKey);
+            }
+
+            return call_user_func_array(array($this->redis, 'sinter'), $keys);
         }
 
         $tmpKey = 'redis-orm:cache:'.md5(time().$criteria->__toString());
@@ -218,6 +227,80 @@ class ObjectRepository
         }
 
         return $this->redis->zrange($tmpKey, 0, -1);
+    }
+
+    /**
+     * @param CriteriaInterface $criteria
+     * @throws InvalidCriteriaException
+     * @return string
+     */
+    protected function handleCriteria(CriteriaInterface $criteria)
+    {
+        $keys = array();
+        $rangeQueries = array();
+        $restrictions = $criteria->getRestrictions();
+        if ($restrictions->count() == 0) {
+            throw new InvalidCriteriaException('Criteria must have at least 1 restriction, found 0.');
+        }
+
+        foreach ($restrictions as $restriction) {
+            if ($restriction instanceof EqualToInterface) {
+                $keys[] = $this->keyNamingStrategy->getKeyName(array($restriction->getKey(), $restriction->getValue()));
+            } elseif ($restriction instanceof LessThanInterface) {
+                $key = $restriction->getKey();
+                $query = isset($rangeQueries[$key]) ? $rangeQueries[$key] : new ZRangeByScore($key);
+                $query->setMax($restriction->getValue());
+                $rangeQueries[$key] = $query;
+            } elseif ($restriction instanceof GreaterThanInterface) {
+                $key = $restriction->getKey();
+                $query = isset($rangeQueries[$key]) ? $rangeQueries[$key] : new ZRangeByScore($key);
+                $query->setMin($restriction->getValue());
+                $rangeQueries[$key] = $query;
+            } elseif ($restriction instanceof LessThanXDaysAgoInterface) {
+                $key = $restriction->getKey();
+                $query = isset($rangeQueries[$key]) ? $rangeQueries[$key] : new ZRangeByScore($key);
+                $value = strtotime($restriction->getValue());
+                if (false === $value) {
+                    throw new InvalidRestrictionValue(
+                        sprintf('The value "%s" is not a valid format. Must be similar to "5 days ago" or "1 month 15 days ago".', $restriction->getValue())
+                    );
+                }
+                $query->setMin($value);
+                $rangeQueries[$key] = $query;
+            } elseif ($restriction instanceof GreaterThanXDaysAgoInterface) {
+                $key = $restriction->getKey();
+                $query = isset($rangeQueries[$key]) ? $rangeQueries[$key] : new ZRangeByScore($key);
+                $value = strtotime($restriction->getValue());
+                if (false === $value) {
+                    throw new InvalidRestrictionValue(
+                        sprintf('The value "%s" is not a valid format. Must be similar to "5 days ago" or "1 month 15 days ago".', $restriction->getValue())
+                    );
+                }
+                $query->setMax($value);
+                $rangeQueries[$key] = $query;
+            } else {
+                throw new \InvalidArgumentException(
+                    sprintf(
+                        'Either the given restriction is of an invalid type, or the restriction type "%s" has not been implemented.',
+                        get_class($restriction)
+                    )
+                );
+            }
+        }
+
+        if (count($rangeQueries) == 0) {
+            return call_user_func_array(array($this->redis, 'sinter'), array($keys));
+        }
+
+        $tmpKey = 'redis-orm:cache:' . md5(time() . $criteria->__toString());
+        $keys = array_merge($keys, array_keys($rangeQueries));
+        array_unshift($keys, $tmpKey, count($keys));
+        call_user_func_array(array($this->redis, 'zinterstore'), $keys);
+
+        $this->handleRangeQueries($rangeQueries, $tmpKey);
+        $this->redis->expire($tmpKey, 1200);
+
+        return $tmpKey;
     }
 
     /**
