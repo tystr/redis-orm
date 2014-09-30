@@ -121,6 +121,14 @@ class ObjectRepository
 
     /**
      * @param CriteriaInterface $criteria
+     */
+    public function count(CriteriaInterface $criteria)
+    {
+        return $this->findIdsBy($criteria, true);
+    }
+
+    /**
+     * @param CriteriaInterface $criteria
      * @return array|object[]
      */
     public function findBy(CriteriaInterface $criteria)
@@ -139,7 +147,7 @@ class ObjectRepository
      * @throws InvalidCriteriaException
      * @return array
      */
-    public function findIdsBy(CriteriaInterface $criteria)
+    public function findIdsBy(CriteriaInterface $criteria, $countOnly = false)
     {
         $keys = array();
         $rangeQueries = array();
@@ -204,6 +212,10 @@ class ObjectRepository
 
         $this->handleRangeQueries($rangeQueries, $tmpKey);
         $this->redis->expire($tmpKey, 1200);
+
+        if ($countOnly) {
+            return $this->redis->zcard($tmpKey);
+        }
 
         return $this->redis->zrange($tmpKey, 0, -1);
     }
