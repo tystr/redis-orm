@@ -12,7 +12,7 @@ class MetadataRegistry
     /**
      * @var array
      */
-    protected $metadata = [];
+    protected $metadata = array();
 
     /**
      * @var LoaderInterface
