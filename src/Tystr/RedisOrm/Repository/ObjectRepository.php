@@ -62,6 +62,11 @@ class ObjectRepository
     protected $hydrator;
 
     /**
+     * @var MetadataRegistry
+     */
+    protected $metadataRegistry;
+
+    /**
      * @param Client                     $redis
      * @param KeyNamingStrategyInterface $keyNamingStrategy
      * @param string                     $className
@@ -71,11 +76,13 @@ class ObjectRepository
         Client $redis,
         KeyNamingStrategyInterface $keyNamingStrategy,
         $className,
+        MetadataRegistry $metadataRegistry,
         ObjectHydratorInterface $objectHydrator = null
     ) {
         $this->redis = $redis;
         $this->keyNamingStrategy = $keyNamingStrategy;
         $this->className = $className;
+        $this->metadataRegistry = $metadataRegistry;
         $this->hydrator = $objectHydrator ?: new ObjectHydrator();
     }
 
@@ -100,6 +107,9 @@ class ObjectRepository
             $key,
             $newData = $this->hydrator->toArray($object, $metadata)
         );
+
+        // @todo compute changeset here
+
         $this->handleProperties($object, $metadata, $originalData, $newData);
     }
 
@@ -341,9 +351,7 @@ class ObjectRepository
      */
     protected function getMetadataFor($className)
     {
-        $metadataRegistry = new MetadataRegistry();
-
-        return $metadataRegistry->getMetadataFor($className);
+        return $this->metadataRegistry->getMetadataFor($className);
     }
 
     /**

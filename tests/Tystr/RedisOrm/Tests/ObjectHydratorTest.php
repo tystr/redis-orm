@@ -3,6 +3,7 @@
 namespace Tystr\RedisOrm\Tests;
 
 use Tystr\RedisOrm\Hydrator\ObjectHydrator;
+use Tystr\RedisOrm\Metadata\AnnotationMetadataLoader;
 use Tystr\RedisOrm\Metadata\MetadataRegistry;
 use Tystr\RedisOrm\Tests\Model\Person;
 use Tystr\RedisOrm\Metadata\Metadata;
@@ -32,7 +33,8 @@ class ObjectHydratorTest extends \PHPUnit_Framework_TestCase
     {
         $this->hydrator = new ObjectHydrator();
         $this->person = new Person('Tyler');
-        $registry = new MetadataRegistry();
+        $loader = new AnnotationMetadataLoader('/tmp');
+        $registry = new MetadataRegistry($loader);
         $this->metadata = $registry->getMetadataFor(get_class($this->person));
     }
 

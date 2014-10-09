@@ -2,9 +2,12 @@
 namespace Tystr\RedisOrm\Context;
 
 use Behat\Gherkin\Node\TableNode;
+use Doctrine\Common\Annotations\Annotation;
 use Doctrine\Common\Collections\ArrayCollection;
 use Tystr\RedisOrm\Criteria\Criteria;
 use Tystr\RedisOrm\KeyNamingStrategy\ColonDelimitedKeyNamingStrategy;
+use Tystr\RedisOrm\Metadata\AnnotationMetadataLoader;
+use Tystr\RedisOrm\Metadata\MetadataRegistry;
 use Tystr\RedisOrm\Repository\ObjectRepository;
 use Tystr\RedisOrm\Test\Model\Car;
 use Tystr\RedisOrm\Test\Model\User;
@@ -41,15 +44,19 @@ class MainContext extends BaseContext
         parent::__construct();
 
         $keyNamingStrategy = new ColonDelimitedKeyNamingStrategy();
+        $loader = new AnnotationMetadataLoader('/tmp');
+        $metadataRegistry = new MetadataRegistry($loader);
         $this->repository = new ObjectRepository(
             $this->redis,
             $keyNamingStrategy,
-            'Tystr\RedisOrm\Test\Model\Car'
+            'Tystr\RedisOrm\Test\Model\Car',
+            $metadataRegistry
         );
         $this->userRepository = new ObjectRepository(
             $this->redis,
             $keyNamingStrategy,
-            'Tystr\RedisOrm\Test\Model\User'
+            'Tystr\RedisOrm\Test\Model\User',
+            $metadataRegistry
         );
     }
 

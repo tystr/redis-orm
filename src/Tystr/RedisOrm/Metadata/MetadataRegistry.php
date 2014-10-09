@@ -2,6 +2,8 @@
 
 namespace Tystr\RedisOrm\Metadata;
 
+use Symfony\Component\Config\Loader\LoaderInterface;
+
 /**
  * @author Tyler Stroud <tyler@tylerstroud.com>
  */
@@ -10,19 +12,19 @@ class MetadataRegistry
     /**
      * @var array
      */
-    protected $metadata;
+    protected $metadata = [];
 
     /**
-     * @var string
+     * @var LoaderInterface
      */
-    protected $cacheDir;
+    protected $loader;
 
     /**
-     * @param string $cacheDir
+     * @param LoaderInterface $loader
      */
-    public function __construct($cacheDir = '/tmp')
+    public function __construct(LoaderInterface $loader)
     {
-        $this->cacheDir = $cacheDir;
+        $this->loader = $loader;
     }
 
     /**
@@ -31,9 +33,8 @@ class MetadataRegistry
      */
     public function getMetadataFor($class)
     {
-        if (!isset($this->metadata[$class])) {
-            $loader = new AnnotationMetadataLoader($this->cacheDir);
-            $this->metadata[$class] = $loader->load($class);
+        if (!array_key_exists($class, $this->metadata)) {
+            $this->metadata[$class] = $this->loader->load($class);
         }
 
         return $this->metadata[$class];
