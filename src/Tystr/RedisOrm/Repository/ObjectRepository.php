@@ -403,7 +403,7 @@ class ObjectRepository
 
             return;
         }
-        if (null === $value && isset($originalData[$keyName])) {
+        if (null === $value && isset($originalData[$keyName]) || isset($originalData[$keyName]) && $value !== $originalData[$keyName]) {
             $key = $this->keyNamingStrategy->getKeyName(array($keyName, $originalData[$keyName]));
             $this->redis->srem(
                 $key,
