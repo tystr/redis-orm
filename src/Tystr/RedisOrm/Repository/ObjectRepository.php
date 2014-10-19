@@ -5,6 +5,7 @@ namespace Tystr\RedisOrm\Repository;
 use Doctrine\Common\Annotations\Annotation;
 use Predis\Client;
 use Doctrine\Common\Annotations\AnnotationReader;
+use Predis\Transaction\MultiExec;
 use ReflectionClass;
 use ReflectionProperty;
 use DateTime;
@@ -102,15 +103,20 @@ class ObjectRepository
 
         $metadata = $this->getMetadataFor($this->className);
         $key = $this->keyNamingStrategy->getKeyName(array($metadata->getPrefix(), $this->getIdForClass($object, $metadata)));
+
         $originalData = $this->redis->hgetall($key);
-        $this->redis->hmset(
+        $transaction = $this->redis->transaction();
+
+        $transaction->hmset(
             $key,
             $newData = $this->hydrator->toArray($object, $metadata)
         );
 
         // @todo compute changeset here
 
-        $this->handleProperties($object, $metadata, $originalData, $newData);
+        $this->handleProperties($object, $metadata, $originalData, $newData, $transaction);
+
+        $transaction->execute();
     }
 
     /**
@@ -355,20 +361,21 @@ class ObjectRepository
     }
 
     /**
-     * @param object   $object
-     * @param Metadata $metadata
-     * @param array    $originalData
-     * @param array    $newData
+     * @param object    $object
+     * @param Metadata  $metadata
+     * @param array     $originalData
+     * @param array     $newData
+     * @param MultiExec $transaction
      */
-    protected function handleProperties($object, Metadata $metadata, array $originalData, array $newData)
+    protected function handleProperties($object, Metadata $metadata, array $originalData, array $newData, MultiExec $transaction)
     {
         $reflClass = new ReflectionClass($object);
         foreach ($metadata->getIndexes() as $propertyName => $keyName) {
-            $this->handleIndex($reflClass, $object, $propertyName, $keyName, $metadata, $originalData);
+            $this->handleIndex($reflClass, $object, $propertyName, $keyName, $metadata, $originalData, $transaction);
         }
 
         foreach ($metadata->getSortedIndexes() as $propertyName => $keyName) {
-            $this->handleSortedIndex($reflClass, $object, $propertyName, $keyName, $metadata, $newData);
+            $this->handleSortedIndex($reflClass, $object, $propertyName, $keyName, $metadata, $newData, $transaction);
         }
     }
 
@@ -378,8 +385,9 @@ class ObjectRepository
      * @param string          $propertyName
      * @param Metadata        $metadata
      * @param array           $originalData
+     * @param MultiExec       $transaction
      */
-    protected function handleIndex(ReflectionClass $reflClass, $object, $propertyName, $keyName, Metadata $metadata, array $originalData)
+    protected function handleIndex(ReflectionClass $reflClass, $object, $propertyName, $keyName, Metadata $metadata, array $originalData, $transaction)
     {
         $property = $reflClass->getProperty($propertyName);
         $property->setAccessible(true);
@@ -390,12 +398,12 @@ class ObjectRepository
                 if ((null === $val && isset($originalData[$mapping['name'].':'.$key])) ||
                     (isset($originalData[$mapping['name'].':'.$key]) &&  $originalData[$mapping['name'].':'.$key] != $val)
                 ) {
-                    $this->redis->srem(
+                    $transaction->srem(
                         $this->keyNamingStrategy->getKeyName(array($key, $originalData[$mapping['name'].':'.$key])),
                         $this->getIdForClass($object, $metadata)
                     );
                 }
-                $this->redis->sadd(
+                $transaction->sadd(
                     $this->keyNamingStrategy->getKeyName(array($key, $val)),
                     $this->getIdForClass($object, $metadata)
                 );
@@ -405,13 +413,13 @@ class ObjectRepository
         }
         if (null === $value && isset($originalData[$keyName]) || isset($originalData[$keyName]) && $value !== $originalData[$keyName]) {
             $key = $this->keyNamingStrategy->getKeyName(array($keyName, $originalData[$keyName]));
-            $this->redis->srem(
+            $transaction->srem(
                 $key,
                 $this->getIdForClass($object, $metadata)
             );
         }
         $key = $this->keyNamingStrategy->getKeyName(array($keyName, $value));
-        $this->redis->sadd($key, $this->getIdForClass($object, $metadata));
+        $transaction->sadd($key, $this->getIdForClass($object, $metadata));
     }
 
     /**
@@ -420,20 +428,21 @@ class ObjectRepository
      * @param string          $propertyName
      * @param Metadata        $metadata
      * @param array           $newData
+     * @param MultiExec       $transaction
      */
-    protected function handleSortedIndex(ReflectionClass $reflClass, $object, $propertyName, $keyName, Metadata $metadata, array $newData)
+    protected function handleSortedIndex(ReflectionClass $reflClass, $object, $propertyName, $keyName, Metadata $metadata, array $newData, $transaction)
     {
         $property = $reflClass->getProperty($propertyName);
         $property->setAccessible(true);
         $mapping = $metadata->getPropertyMapping($propertyName);
 
         if (!isset($newData[$mapping['name']]) || null === $newData[$mapping['name']]) {
-            $this->redis->zrem($this->keyNamingStrategy->getKeyName(array($keyName, $newData[$mapping['name']])), $this->getIdForClass($object, $metadata));
+            $transaction->zrem($this->keyNamingStrategy->getKeyName(array($keyName, $newData[$mapping['name']])), $this->getIdForClass($object, $metadata));
 
             return;
         }
 
-        $this->redis->zadd(
+        $transaction->zadd(
             $this->keyNamingStrategy->getKeyName(array($keyName)),
             $newData[$mapping['name']],
             $this->getIdForClass($object, $metadata)
