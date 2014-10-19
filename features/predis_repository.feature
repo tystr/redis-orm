@@ -34,6 +34,15 @@ Feature: Repository persistence
       | is_slow     | no  |
       | is_awd      | yes |
 
+    @findby
+  Scenario: Finding an object by a property value
+    Given the following Car:
+      | id | make  | model   | engine_type | color |
+      | 1  | BMW   | M5      | V10         | red   |
+      | 2  | Tesla | Model S | what?       | blue |
+    When I find cars where the property "color" is "red"
+    Then there should be 1 car
+
   Scenario: Saving an object with null property values removes the id from index field for that property
     Given the following Car:
       | id | make    | model   | engine_type | color  |
