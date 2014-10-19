@@ -5,8 +5,6 @@ Redis ORM
 This is a small object mapper library designed to assist in storing objects into a [Redis][1] database
 while maintaining indexes for the fields of the object for efficient querying and filtering.
 
-This project is under development. Use at your own risk.
-
 TODO: 
  - [ ] Associated objects
 
@@ -29,11 +27,17 @@ Simply run the following command to get your VM up and running:
 
     $ vagrant up
 
-To run the [Behat][3] test suite:
+Integration tests are run via [Behat][3]:
 
     $ vagrant ssh
     $ cd /vagrant
     $ vendor/bin/behat
+    
+Unit tests are run via phpunit:
+
+    $ vagrant ssh
+    $ cd /vagrant
+    $ vendor/bin/phpunit
 
 Read The Documentation
 ======================
