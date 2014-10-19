@@ -1,6 +1,6 @@
 <?php
 
-namespace Tystr\RedisOrm\Tests;
+namespace Tystr\RedisOrm\Tests\Hydrator;
 
 use Tystr\RedisOrm\Hydrator\ObjectHydrator;
 use Tystr\RedisOrm\Metadata\AnnotationMetadataLoader;
