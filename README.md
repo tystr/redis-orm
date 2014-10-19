@@ -8,9 +8,7 @@ while maintaining indexes for the fields of the object for efficient querying an
 This project is under development. Use at your own risk.
 
 TODO: 
-
- - Associated objects
- - Use redis transactions
+ - [ ] Associated objects
 
 Support
 =======
