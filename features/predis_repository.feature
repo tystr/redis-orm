@@ -45,6 +45,13 @@ Feature: Repository persistence
     And When I set the color for the car "1" to "null"
     Then there should be 0 items in the "color:red" key
 
+  Scenario: Saving an object with a different property value removes the id from the index of the original value;
+    Given the following Car:
+      | id | make    | model   | engine_type | color  |
+      | 1  | Tesla   | Model S | V8          | red    |
+    And When I set the color for the car "1" to "blue"
+    Then there should be 0 items in the "color:red" key
+    And there should be 1 items in the "color:blue" key
 
   @filter
   Scenario: Finding and filtering data
