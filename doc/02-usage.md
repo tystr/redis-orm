@@ -7,6 +7,8 @@ First, you will need to define some mapping metadata on your models:
 
 <?php
 
+namespace 'App\Model';
+
 use Tystr\RedisOrm\Annotations\Id;
 use Tystr\RedisOrm\Annotations\Index;
 use Tystr\RedisOrm\Annotations\Date;
@@ -65,9 +67,12 @@ require 'vendor/autoload.php';
 
 $redis = new Predis\Client();
 $keyNamingStrategy = new Tystr\RedisOrm\KeyNamingStrategy\ColonDelimitedKeyNamingStrategy();
-$repository = new ObjectRepository($client, $keyNamingStrategy));
+$className = 'App\Model\Car';
+$metadataRegistry = new Tystr\RedisOrm\Metadata\MetadataRegistry('/path/to/cache/dir');
 
-$car = new Car(123, 'Tesla', new \DateTime());
+$repository = new ObjectRepository($client, $keyNamingStrategy, $className, $metadataRegistry);
+
+$car = new App\Model\Car(123, 'Tesla', new \DateTime());
 
 $repository->save($car);
 ```
