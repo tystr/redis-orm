@@ -135,7 +135,7 @@ class MainContext extends BaseContext
     /**
      * @When I find cars where the property :name is :value
      */
-    public function iFindCarsThatHaveTheColorRed($name, $value)
+    public function iFindCarsThatHavePropertyValue($name, $value)
     {
         $restriction = Restrictions::equalTo($name, $value);
         $criteria = new Criteria();
