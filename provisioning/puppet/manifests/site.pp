@@ -1,9 +1,9 @@
 node default {
   $project_root = '/vagrant'
 
-  yumrepo { 'webtatic':
-    descr      => 'Webtatic Repository $releasever - $basearch',
-    mirrorlist => 'http://repo.webtatic.com/yum/el6/$basearch/mirrorlist',
+  yumrepo { 'ius':
+    descr      => 'IUS Community Repository $releasever - $basearch',
+    mirrorlist => 'http://dmirr.iuscommunity.org/mirrorlist/?repo=ius-el6&arch=$basearch',
     gpgcheck   => 0,
     enabled    => 1,
     priority   => 1
@@ -18,14 +18,14 @@ node default {
 
   # PHP
   $php_packages = [
-    'php55w',
-    'php55w-intl',
-    'php55w-xml',
-    'php55w-mbstring',
-    'php55w-fpm',
-    'php55w-opcache',
-    'php55w-pdo',
-    'php55w-mysqlnd',
+    'php55u',
+    'php55u-intl',
+    'php55u-xml',
+    'php55u-mbstring',
+    'php55u-fpm',
+    'php55u-opcache',
+    'php55u-pdo',
+    'php55u-mysqlnd',
   ]
   package { $php_packages:
     ensure => latest
