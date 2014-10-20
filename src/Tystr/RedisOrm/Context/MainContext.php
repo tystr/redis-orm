@@ -133,6 +133,17 @@ class MainContext extends BaseContext
     }
 
     /**
+     * @When I find cars where the property :name is :value
+     */
+    public function iFindCarsThatHaveTheColorRed($name, $value)
+    {
+        $restriction = Restrictions::equalTo($name, $value);
+        $criteria = new Criteria();
+        $criteria->addRestriction($restriction);
+        $this->cars = $this->repository->findBy($criteria);
+    }
+
+    /**
      * @Then there should be :count car
      */
     public function iThereShouldBeCarReturned($count)
