@@ -80,12 +80,12 @@ node default {
   File['/etc/sysconfig/iptables'] ~> Service['iptables']
 
   # Redis
-  package { 'redis':
+  package { 'redis28u':
     ensure => installed
   }
   service { 'redis':
     enable => true,
     ensure => running
   }
-  Package['redis'] ~> Service['redis']
+  Package['redis28u'] ~> Service['redis']
 }
