@@ -194,7 +194,9 @@ class ObjectRepository
                        sprintf('The value "%s" is not a valid format. Must be similar to "5 days ago" or "1 month 15 days ago".', $restriction->getValue())
                    );
                }
-                $query->setMin($value);
+                $date = DateTime::createFromFormat('U', $value);
+                $date->setTime(0, 0, 0);
+                $query->setMin($date->format('U'));
                 $rangeQueries[$key] = $query;
             } elseif ($restriction instanceof GreaterThanXDaysAgoInterface) {
                 $key = $restriction->getKey();
@@ -205,7 +207,9 @@ class ObjectRepository
                         sprintf('The value "%s" is not a valid format. Must be similar to "5 days ago" or "1 month 15 days ago".', $restriction->getValue())
                     );
                 }
-                $query->setMax($value);
+                $date = DateTime::createFromFormat('U', $value);
+                $date->setTime(0, 0, 0);
+                $query->setMax($date->format('U'));
                 $rangeQueries[$key] = $query;
             } else {
                 throw new \InvalidArgumentException(
@@ -281,7 +285,9 @@ class ObjectRepository
                         sprintf('The value "%s" is not a valid format. Must be similar to "5 days ago" or "1 month 15 days ago".', $restriction->getValue())
                     );
                 }
-                $query->setMin($value);
+                $date = DateTime::createFromFormat('U', $value);
+                $date->setTime(0, 0, 0);
+                $query->setMin($date->format('U'));
                 $rangeQueries[$key] = $query;
             } elseif ($restriction instanceof GreaterThanXDaysAgoInterface) {
                 $key = $restriction->getKey();
@@ -292,7 +298,9 @@ class ObjectRepository
                         sprintf('The value "%s" is not a valid format. Must be similar to "5 days ago" or "1 month 15 days ago".', $restriction->getValue())
                     );
                 }
-                $query->setMax($value);
+                $date = DateTime::createFromFormat('U', $value);
+                $date->setTime(0, 0, 0);
+                $query->setMax($date->format('U'));
                 $rangeQueries[$key] = $query;
             } else {
                 throw new \InvalidArgumentException(
