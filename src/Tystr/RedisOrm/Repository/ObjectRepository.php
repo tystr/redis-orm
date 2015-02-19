@@ -353,7 +353,7 @@ class ObjectRepository
                 );
             }
             $resultKey = sprintf('%s:%s', $key, $rangeQuery->getKey());
-            $this->redis->zinterstore($resultKey, [$rangeQuery->getKey()]);
+            $this->redis->zinterstore($resultKey, array($rangeQuery->getKey()));
 
             $min = $rangeQuery->getMin();
             if ($min != '-inf') {
