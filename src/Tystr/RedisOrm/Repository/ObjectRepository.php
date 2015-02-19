@@ -319,6 +319,7 @@ class ObjectRepository
         $tmpKey = 'redis-orm:cache:' . md5(time() . $criteria->__toString());
         $keys = array_merge($keys, array_keys($rangeQueries));
         array_unshift($keys, $tmpKey, count($keys));
+        array_push($keys, 'AGGREGATE', 'MAX');
         call_user_func_array(array($this->redis, 'zinterstore'), $keys);
 
         $this->handleRangeQueries($rangeQueries, $tmpKey);
