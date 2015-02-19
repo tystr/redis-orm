@@ -342,7 +342,7 @@ class ObjectRepository
      */
     protected function handleRangeQueries(array $rangeQueries, $key)
     {
-        $resultKeys = [];
+        $resultKeys = array();
         foreach ($rangeQueries as $rangeQuery) {
             if (!$rangeQuery instanceof ZRangeByScore) {
                 throw new \InvalidArgumentException(
