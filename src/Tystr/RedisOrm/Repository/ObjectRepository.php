@@ -234,12 +234,16 @@ class ObjectRepository
             return call_user_func_array(array($this->redis, 'sinter'), $keys);
         }
 
-        $tmpKey = 'redis-orm:cache:'.md5(time().$criteria->__toString());
-        $keys = array_merge($keys, array_keys($rangeQueries));
+        $tmpKey = 'redis-orm:cache:' . md5(time() . $criteria->__toString());
+        $rangeKeys = $this->handleRangeQueries($rangeQueries, $tmpKey);
+
+        //$keys = array_merge($keys, array_keys($rangeQueries));
+        $keys = array_merge($keys, $rangeKeys);
         array_unshift($keys, $tmpKey, count($keys));
+        array_push($keys, 'AGGREGATE', 'MAX');
         call_user_func_array(array($this->redis, 'zinterstore'), $keys);
 
-        $this->handleRangeQueries($rangeQueries, $tmpKey);
+        //$this->handleRangeQueries($rangeQueries, $tmpKey);
         $this->redis->expire($tmpKey, 1200);
 
         if ($countOnly) {
@@ -317,7 +321,10 @@ class ObjectRepository
         }
 
         $tmpKey = 'redis-orm:cache:' . md5(time() . $criteria->__toString());
-        $keys = array_merge($keys, array_keys($rangeQueries));
+        $rangeKeys = $this->handleRangeQueries($rangeQueries, $tmpKey);
+
+        //$keys = array_merge($keys, array_keys($rangeQueries));
+        $keys = array_merge($keys, $rangeKeys);
         array_unshift($keys, $tmpKey, count($keys));
         array_push($keys, 'AGGREGATE', 'MAX');
         call_user_func_array(array($this->redis, 'zinterstore'), $keys);
@@ -335,7 +342,7 @@ class ObjectRepository
      */
     protected function handleRangeQueries(array $rangeQueries, $key)
     {
-        $totalRemoved = 0;
+        $resultKeys = [];
         foreach ($rangeQueries as $rangeQuery) {
             if (!$rangeQuery instanceof ZRangeByScore) {
                 throw new \InvalidArgumentException(
@@ -345,19 +352,24 @@ class ObjectRepository
                     )
                 );
             }
+            $resultKey = sprintf('%s:%s', $key, $rangeQuery->getKey());
+            $this->redis->zinterstore($resultKey, [$rangeQuery->getKey()]);
 
             $min = $rangeQuery->getMin();
             if ($min != '-inf') {
-                $totalRemoved += $this->redis->zremrangebyscore($key, '-inf', $min);
+                $this->redis->zremrangebyscore($resultKey, '-inf', $min);
             }
 
             $max = $rangeQuery->getMax();
             if ($max != '+inf') {
-                $totalRemoved += $this->redis->zremrangebyscore($key, $max, '+inf');
+                $this->redis->zremrangebyscore($resultKey, $max, '+inf');
             }
+            $this->redis->expire($resultKey, 1200);
+
+            $resultKeys[] = $resultKey;
         }
 
-        return $totalRemoved;
+        return $resultKeys;
     }
 
     /**
