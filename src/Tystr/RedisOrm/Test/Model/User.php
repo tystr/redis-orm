@@ -11,12 +11,14 @@ use Tystr\RedisOrm\Annotations\Prefix;
 
 /**
  * @Prefix("users")
+ *
  * @author Tyler Stroud <tyler@tylerstroud.com>
  */
 class User
 {
     /**
      * @Id
+     *
      * @var string
      */
     protected $email;
@@ -24,6 +26,7 @@ class User
     /**
      * @Field(type="date")
      * @Date(name="dob")
+     *
      * @var \DateTime
      */
     protected $dateOfBirth;
@@ -31,6 +34,7 @@ class User
     /**
      * @Field(type="date")
      * @Date(name="signup")
+     *
      * @var \DateTime
      */
     protected $signupDate;
@@ -38,6 +42,7 @@ class User
     /**
      * @Field(type="date")
      * @Date(name="last_open")
+     *
      * @var \DateTime
      */
     protected $lastOpen;
@@ -45,6 +50,7 @@ class User
     /**
      * @Field(type="date")
      * @Date(name="last_click")
+     *
      * @var \DateTime
      */
     protected $lastClick;
@@ -52,6 +58,7 @@ class User
     /**
      * @Field(type="hash")
      * @Index
+     *
      * @var array
      */
     protected $attributes = array();
@@ -64,6 +71,14 @@ class User
     {
         $this->email = $email;
         $this->attributes = $attributes;
+    }
+
+    /**
+     * @return string
+     */
+    public function getId()
+    {
+        return $this->email;
     }
 
     /**
@@ -84,6 +99,7 @@ class User
 
     /**
      * @param string $key
+     *
      * @return bool
      */
     public function hasAttribute($key)

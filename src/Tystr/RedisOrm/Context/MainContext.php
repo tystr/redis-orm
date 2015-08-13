@@ -1,17 +1,18 @@
 <?php
+
 namespace Tystr\RedisOrm\Context;
 
 use Behat\Gherkin\Node\TableNode;
-use Doctrine\Common\Annotations\Annotation;
 use Doctrine\Common\Collections\ArrayCollection;
+use Tystr\RedisOrm\Criteria\AndGroupInterface;
 use Tystr\RedisOrm\Criteria\Criteria;
+use Tystr\RedisOrm\Criteria\OrGroupInterface;
 use Tystr\RedisOrm\KeyNamingStrategy\ColonDelimitedKeyNamingStrategy;
 use Tystr\RedisOrm\Metadata\AnnotationMetadataLoader;
 use Tystr\RedisOrm\Metadata\MetadataRegistry;
 use Tystr\RedisOrm\Repository\ObjectRepository;
 use Tystr\RedisOrm\Test\Model\Car;
 use Tystr\RedisOrm\Test\Model\User;
-use Tystr\RedisOrm\Test\Model\UserList;
 use Tystr\RedisOrm\Criteria\Restrictions;
 
 /**
@@ -90,7 +91,6 @@ class MainContext extends BaseContext
         $car->$setter($data);
         $this->repository->save($car);
     }
-
 
     /**
      * @Then the car with the id :id should have property :propertyName with the following values:
@@ -231,21 +231,55 @@ class MainContext extends BaseContext
      */
     public function theListHasTheFollowingCriteria($listName, TableNode $table)
     {
-        $criteria = new Criteria(new ArrayCollection());
-        foreach ($table->getHash() as $restriction) {
-            if (in_array($restriction['key'], array('signup', 'last_open', 'last_click', 'dob'))) {
-                $value = new \DateTime($restriction['value']);
-                $value = $value->format('U');
+        $restrictionRows = $table->getHash();
+
+        $restrictions = array();
+        $restrictionsBelongingToParent = array();
+
+        foreach ($restrictionRows as $rowNum => $row) {
+            $methodName = $row['name'];
+            $dummyRestriction = Restrictions::$methodName('', array());
+            if ($dummyRestriction instanceof AndGroupInterface || $dummyRestriction instanceof OrGroupInterface) {
+                $value = array();
+                foreach (explode(',', $row['value']) as $childId) {
+                    $childId = trim($childId);
+                    if ($childId !== null) {
+                        $value[] = $restrictions[$childId];
+                        $restrictionsBelongingToParent[] = $childId;
+                    }
+                }
             } else {
-                $value = $restriction['value'];
+                $value = $this->translateRestrictionValue($row);
             }
-            $method = $restriction['name'];
-            $criteria->addRestriction(
-                Restrictions::$method($restriction['key'], $value)
-            );
+            $restriction = Restrictions::$methodName($row['key'], $value);
+            $restrictions[$rowNum + 1] = $restriction;
         }
 
+        $parentlessRestrictions = array();
+        $parentlessRestrictionIds = array_diff(array_keys($restrictions), $restrictionsBelongingToParent);
+        foreach ($parentlessRestrictionIds as $id) {
+            $parentlessRestrictions[] = $restrictions[$id];
+        }
+
+        $criteria = new Criteria(new ArrayCollection($parentlessRestrictions));
         $this->lists[$listName] = $criteria;
+    }
+
+    /**
+     * @param $restriction
+     *
+     * @return \DateTime|string
+     */
+    private function translateRestrictionValue($restriction)
+    {
+        if (in_array($restriction['key'], array('signup', 'last_open', 'last_click', 'dob'))) {
+            $value = new \DateTime($restriction['value']);
+            $value = $value->format('U');
+        } else {
+            $value = $restriction['value'];
+        }
+
+        return $value;
     }
 
     /**
@@ -257,7 +291,20 @@ class MainContext extends BaseContext
     }
 
     /**
+     * @Then the list :listName should have the ids :ids
+     */
+    public function theListShouldHaveIds($listName, $ids)
+    {
+        $resultIds = $this->userRepository->findIdsBy($this->lists[$listName]);
+        $expectedIds = array_map('trim', explode(',', $ids));
+        $idDiff = array_diff($resultIds, $expectedIds);
+        assertEquals(array(), $idDiff);
+        assertCount(count($expectedIds), $resultIds);
+    }
+
+    /**
      * @param int$id
+     *
      * @return object
      */
     public function getObjectById($id)

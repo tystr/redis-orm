@@ -112,3 +112,58 @@ Feature: Repository persistence
       | equalTo     | subscribed   | 1          |
       | equalTo     | email_opt    | 1          |
     Then the list "test5" should have 10 users
+
+
+  @filter-or
+  Scenario: simple or
+    Given the following users:
+      | email           | dob        | signup     | last_open  | last_click | email_opt | subscribed |
+      | test1@test.com  | 1980-01-01 | 2014-06-25 | 2014-07-01 | 2014-07-01 | 1         | 1          |
+      | test2@test.com  | 1980-01-02 | 2014-06-26 | 2014-07-02 | 2014-07-02 | 0         | 1          |
+      | test3@test.com  | 1980-01-03 | 2014-06-27 | 2014-07-03 | 2014-07-03 | 1         | 0          |
+
+    And the list "test6" has the following criteria:
+      |   name     | key       |  value         |
+      |   equalTo  | email_opt | 1              |
+      |   equalTo  | email_opt | 0              |
+      |   orGroup  |           | 1,2            |
+    Then the list "test6" should have 3 users
+    And the list "test6" should have the ids "test1@test.com,test2@test.com,test3@test.com"
+
+
+  @filter-and
+  Scenario: simple and
+    Given the following users:
+      | email           | dob        | signup     | last_open  | last_click | email_opt | subscribed |
+      | test1@test.com  | 1980-01-01 | 2014-06-25 | 2014-07-01 | 2014-07-01 | 1         | 1          |
+      | test2@test.com  | 1980-01-02 | 2014-06-26 | 2014-07-02 | 2014-07-02 | 0         | 1          |
+      | test3@test.com  | 1980-01-03 | 2014-06-27 | 2014-07-03 | 2014-07-03 | 1         | 0          |
+
+    And the list "test7" has the following criteria:
+      |   name         | key        |  value   |
+      |   equalTo      | email_opt  | 1        |
+      |   equalTo      | subscribed | 0        |
+      |   andGroup     |            | 1,2      |
+    Then the list "test7" should have 1 users
+    And the list "test7" should have the ids "test3@test.com"
+
+
+  @filter-nested-composition
+  Scenario: nested composition
+    Given the following users:
+      | email           | dob        | signup     | last_open  | last_click | email_opt | subscribed |
+      | test1@test.com  | 1980-01-01 | 2014-06-25 | 2014-07-01 | 2014-07-01 | 1         | 1          |
+      | test2@test.com  | 1980-01-02 | 2014-06-26 | 2014-07-02 | 2014-07-02 | 0         | 1          |
+      | test3@test.com  | 1980-01-03 | 2014-06-27 | 2014-07-03 | 2014-07-03 | 1         | 0          |
+
+    And the list "test8" has the following criteria:
+      |   name        | key        |  value     |
+      |   equalTo     | email_opt  | 1          |
+      |   equalTo     | email_opt  | 0          |
+      |   greaterThan | last_open  | 2014-07-01 |
+      |   orGroup     |            | 1,2        |
+      |   andGroup    |            | 3,4        |
+
+
+    Then the list "test8" should have 2 users
+    And the list "test8" should have the ids "test2@test.com, test3@test.com"

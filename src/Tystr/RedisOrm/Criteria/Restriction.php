@@ -53,6 +53,7 @@ abstract class Restriction implements RestrictionInterface
 
     /**
      * @param Restriction $restriction
+     *
      * @return bool
      */
     public function equals(RestrictionInterface $restriction)

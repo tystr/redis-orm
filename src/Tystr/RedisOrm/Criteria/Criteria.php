@@ -60,6 +60,7 @@ class Criteria implements CriteriaInterface
 
     /**
      * @param Restriction $expectedRestriction
+     *
      * @return bool
      */
     public function hasRestriction(RestrictionInterface $expectedRestriction)
@@ -78,16 +79,7 @@ class Criteria implements CriteriaInterface
      */
     public function __toString()
     {
-        $string = '';
-        foreach ($this->restrictions as $restriction) {
-            $string .= sprintf(
-                '%s %s %s, ',
-                $restriction->getKey(),
-                get_class($restriction),
-                $restriction->getValue()
-            );
-        }
-
-        return rtrim($string, ', ');
+        $keyGenerator = new RestrictionsKeyGenerator();
+        $keyGenerator->getKeyName($this->getRestrictions());
     }
 }

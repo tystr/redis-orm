@@ -2,16 +2,10 @@
 
 namespace Tystr\RedisOrm\Repository;
 
-use Doctrine\Common\Annotations\Annotation;
 use Predis\Client;
-use Doctrine\Common\Annotations\AnnotationReader;
 use Predis\Transaction\MultiExec;
 use ReflectionClass;
-use ReflectionProperty;
 use DateTime;
-use Tystr\RedisOrm\Annotations\Date;
-use Tystr\RedisOrm\Annotations\Index;
-use Tystr\RedisOrm\Annotations\SortedIndex;
 use Tystr\RedisOrm\Criteria\Criteria;
 use Tystr\RedisOrm\Criteria\CriteriaInterface;
 use Tystr\RedisOrm\Criteria\EqualToInterface;
@@ -19,24 +13,30 @@ use Tystr\RedisOrm\Criteria\GreaterThanInterface;
 use Tystr\RedisOrm\Criteria\GreaterThanXDaysAgoInterface;
 use Tystr\RedisOrm\Criteria\LessThanInterface;
 use Tystr\RedisOrm\Criteria\LessThanXDaysAgoInterface;
+use Tystr\RedisOrm\Criteria\AndGroupInterface;
+use Tystr\RedisOrm\Criteria\OrGroupInterface;
+use Tystr\RedisOrm\Criteria\Restrictions;
 use Tystr\RedisOrm\DataTransformer\DataTypes;
-use Tystr\RedisOrm\DataTransformer\TimestampToDatetimeTransformer;
 use Tystr\RedisOrm\Exception\InvalidArgumentException;
 use Tystr\RedisOrm\Exception\InvalidCriteriaException;
 use Tystr\RedisOrm\Exception\InvalidRestrictionValue;
 use Tystr\RedisOrm\Hydrator\ObjectHydrator;
 use Tystr\RedisOrm\Hydrator\ObjectHydratorInterface;
 use Tystr\RedisOrm\KeyNamingStrategy\KeyNamingStrategyInterface;
-use Tystr\RedisOrm\Metadata\AnnotationMetadataLoader;
 use Tystr\RedisOrm\Metadata\Metadata;
 use Tystr\RedisOrm\Metadata\MetadataRegistry;
 use Tystr\RedisOrm\Query\ZRangeByScore;
+use Tystr\RedisOrm\Criteria\RestrictionsKeyGenerator;
+use Doctrine\Common\Collections\Collection;
 
 /**
  * @author Tyler Stroud <tyler@tylerstroud.com>
  */
 class ObjectRepository
 {
+    const OP_UNION = 0;
+    const OP_INTERSECT = 1;
+
     /**
      * @var string
      */
@@ -51,6 +51,11 @@ class ObjectRepository
      * @var KeyNamingStrategyInterface
      */
     protected $keyNamingStrategy;
+
+    /**
+     * @var RestrictionsKeyGenerator
+     */
+    protected $restrictionsKeyGenerator;
 
     /**
      * @var string
@@ -85,6 +90,7 @@ class ObjectRepository
         $this->className = $className;
         $this->metadataRegistry = $metadataRegistry;
         $this->hydrator = $objectHydrator ?: new ObjectHydrator();
+        $this->restrictionsKeyGenerator = new RestrictionsKeyGenerator();
     }
 
     /**
@@ -121,6 +127,7 @@ class ObjectRepository
 
     /**
      * @param mixed $id
+     *
      * @return object
      */
     public function find($id)
@@ -129,7 +136,7 @@ class ObjectRepository
         $key = $this->keyNamingStrategy->getKeyName(array($metadata->getPrefix(), $id));
         $data = $this->redis->hgetall($key);
         if (empty($data)) {
-            return null;
+            return;
         }
 
         return $this->hydrator->hydrate($this->newObject(), $data, $metadata);
@@ -145,6 +152,7 @@ class ObjectRepository
 
     /**
      * @param CriteriaInterface $criteria
+     *
      * @return array|object[]
      */
     public function findBy(CriteriaInterface $criteria)
@@ -160,15 +168,28 @@ class ObjectRepository
 
     /**
      * @param CriteriaInterface $criteria
+     *
      * @throws InvalidCriteriaException
+     *
      * @return array
      */
     public function findIdsBy(CriteriaInterface $criteria, $countOnly = false)
     {
+        $resultKey = $this->getResults($criteria->getRestrictions(), self::OP_INTERSECT);
+
+        if ($countOnly) {
+            return $this->redis->zcard($resultKey);
+        }
+
+        return $this->redis->zrange($resultKey, 0, -1);
+    }
+
+    private function getResults($restrictions, $setOperation)
+    {
         $keys = array();
         $rangeQueries = array();
-        $restrictions = $criteria->getRestrictions();
-        if ($restrictions->count() == 0) {
+
+        if (count($restrictions) == 0) {
             throw new InvalidCriteriaException('Criteria must have at least 1 restriction, found 0.');
         }
 
@@ -190,10 +211,10 @@ class ObjectRepository
                 $query = isset($rangeQueries[$key]) ? $rangeQueries[$key] : new ZRangeByScore($key);
                 $value = strtotime($restriction->getValue());
                 if (false === $value) {
-                   throw new InvalidRestrictionValue(
+                    throw new InvalidRestrictionValue(
                        sprintf('The value "%s" is not a valid format. Must be similar to "5 days ago" or "1 month 15 days ago".', $restriction->getValue())
                    );
-               }
+                }
                 $date = DateTime::createFromFormat('U', $value);
                 $date->setTime(0, 0, 0);
                 $query->setMin($date->format('U'));
@@ -211,6 +232,10 @@ class ObjectRepository
                 $date->setTime(0, 0, 0);
                 $query->setMax($date->format('U'));
                 $rangeQueries[$key] = $query;
+            } elseif ($restriction instanceof AndGroupInterface) {
+                $keys[] = $this->getResults($restriction->getValue(), self::OP_INTERSECT);
+            } elseif ($restriction instanceof OrGroupInterface) {
+                $keys[] = $this->getResults($restriction->getValue(), self::OP_UNION);
             } else {
                 throw new \InvalidArgumentException(
                     sprintf(
@@ -221,41 +246,45 @@ class ObjectRepository
             }
         }
 
-        if (count($rangeQueries) == 0) {
-            if ($countOnly) {
-                $tmpKey = 'redis-orm:cache:'.md5(time().$criteria->__toString());
-                array_unshift($keys, $tmpKey);
-                call_user_func_array(array($this->redis, 'sinterstore'), $keys);
-                $this->redis->expire($tmpKey, 1200);
+       /*
+       //@ TODO redo optimization. If we are at the top level set of restrictions, we can return the restriction data directly
+       if (count($rangeQueries) == 0) {
+           if ($countOnly) {
+               $tmpKey = 'redis-orm:cache:'.md5(time().$criteria->__toString());
+               array_unshift($keys, $tmpKey);
+               call_user_func_array(array($this->redis, $setOperation === self::OP_UNION ? 'sunionstore' : 'sinterstore'), $keys);
+               $this->redis->expire($tmpKey, 1200);
 
-                return $this->redis->scard($tmpKey);
-            }
+               return $this->redis->scard($tmpKey);
+           }
+           return call_user_func_array(array($this->redis, $setOperation === self::OP_UNION ? 'sunion' : 'sinter'), $keys);
+       }
+       */
 
-            return call_user_func_array(array($this->redis, 'sinter'), $keys);
-        }
+        $restrictionsKey = $this->restrictionsKeyGenerator->getKeyName(
+            $restrictions instanceof Collection ? $restrictions->toArray() : $restrictions
+        );
 
-        $tmpKey = 'redis-orm:cache:' . md5(time() . $criteria->__toString());
+        $tmpKey = $this->keyNamingStrategy->getKeyName(array('redis-orm:cache', str_replace(' ', '.', microtime()), md5($restrictionsKey)));
         $rangeKeys = $this->handleRangeQueries($rangeQueries, $tmpKey);
 
         //$keys = array_merge($keys, array_keys($rangeQueries));
-        $keys = array_merge($keys, $rangeKeys);
+        $keys = array_merge($rangeKeys, $keys);
         array_unshift($keys, $tmpKey, count($keys));
         array_push($keys, 'AGGREGATE', 'MAX');
-        call_user_func_array(array($this->redis, 'zinterstore'), $keys);
+        call_user_func_array(array($this->redis, $setOperation === self::OP_UNION ? 'zunionstore' : 'zinterstore'), $keys);
 
         //$this->handleRangeQueries($rangeQueries, $tmpKey);
         $this->redis->expire($tmpKey, 1200);
 
-        if ($countOnly) {
-            return $this->redis->zcard($tmpKey);
-        }
-
-        return $this->redis->zrange($tmpKey, 0, -1);
+        return $tmpKey;
     }
 
     /**
      * @param CriteriaInterface $criteria
+     *
      * @throws InvalidCriteriaException
+     *
      * @return string
      */
     protected function handleCriteria(CriteriaInterface $criteria)
@@ -320,7 +349,7 @@ class ObjectRepository
             return call_user_func_array(array($this->redis, 'sinter'), array($keys));
         }
 
-        $tmpKey = 'redis-orm:cache:' . md5(time() . $criteria->__toString());
+        $tmpKey = 'redis-orm:cache:'.md5(time().$criteria->__toString());
         $rangeKeys = $this->handleRangeQueries($rangeQueries, $tmpKey);
 
         //$keys = array_merge($keys, array_keys($rangeQueries));
@@ -338,6 +367,7 @@ class ObjectRepository
     /**
      * @param array  $rangeQueries
      * @param string $key
+     *
      * @return int
      */
     protected function handleRangeQueries(array $rangeQueries, $key)
@@ -374,6 +404,7 @@ class ObjectRepository
 
     /**
      * @param string $className
+     *
      * @return Metadata
      */
     protected function getMetadataFor($className)
@@ -473,6 +504,7 @@ class ObjectRepository
     /**
      * @param ReflectionClass $reflClass
      * @param Metadata        $metadata
+     *
      * @return string|int
      */
     protected function getIdForClass($object, Metadata $metadata)
