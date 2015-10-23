@@ -445,7 +445,11 @@ class ObjectRepository
         $property->setAccessible(true);
         $value = $property->getValue($object);
         $mapping = $metadata->getPropertyMapping($propertyName);
-        if (DataTypes::HASH == $mapping['type']) {
+
+        // Grab the intval here to prevent boolean false from being string cast to "" instead of "0"
+        if (DataTypes::BOOLEAN === $mapping['type']) {
+            $value = intval($value);
+        } elseif (DataTypes::HASH == $mapping['type']) {
             foreach ($value as $key => $val) {
                 if ((null === $val && isset($originalData[$mapping['name'].':'.$key])) ||
                     (isset($originalData[$mapping['name'].':'.$key]) &&  $originalData[$mapping['name'].':'.$key] != $val)

@@ -5,7 +5,7 @@ Feature: Repository persistence
     Given the following Car:
       | id | make  | model   | engine_type | color |
       | 1  | Tesla | Model S | V8          | red   |
-    Then there should be 6 keys in the database
+    Then there should be 7 keys in the database
     And the following keys should exist:
       | name           | value |
       | make:Tesla     | 1     |
@@ -61,6 +61,18 @@ Feature: Repository persistence
     And When I set the color for the car "1" to "blue"
     Then there should be 0 items in the "color:red" key
     And there should be 1 items in the "color:blue" key
+
+  @boolean
+  Scenario: Saving an object with a boolean property
+    Given the following Car:
+      | id | make    | model   | engine_type | active |
+      | 1  | Tesla   | Model S | V8          | 1      |
+    Then there should be 1 items in the "active:1" key
+    And there should be 0 items in the "active:0" key
+    And When I set the active for the car "1" to "false"
+    Then there should be 0 items in the "active:1" key
+    And there should be 1 items in the "active:0" key
+    And the car with the id "1" should have property "active" with the value "false":
 
   @filter
   Scenario: Finding and filtering data

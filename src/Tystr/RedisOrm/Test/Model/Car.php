@@ -71,6 +71,13 @@ class Car
     protected $attributes;
 
     /**
+     * @var bool
+     * @Field(type="boolean")
+     * @Index
+     */
+    protected $active;
+
+    /**
      * @return string
      */
     public function getColor()
@@ -214,5 +221,21 @@ class Car
     public function getAttribute($key)
     {
         return isset($this->attributes[$key]) ? $this->attributes[$key] : null;
+    }
+
+    /**
+     * @return boolean
+     */
+    public function getActive()
+    {
+        return $this->active;
+    }
+
+    /**
+     * @param boolean $active
+     */
+    public function setActive($active)
+    {
+        $this->active = $active;
     }
 }

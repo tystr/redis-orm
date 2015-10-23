@@ -101,7 +101,7 @@ class ObjectHydrator implements ObjectHydratorInterface
             case DataTypes::DOUBLE:
                 return doubleval($value);
             case DataTYpes::BOOLEAN:
-                return boolval($value);
+                return (bool) $value;
             case DataTypes::COLLECTION:
                 return (array) $value;
             case DataTypes::DATE:
@@ -128,6 +128,10 @@ class ObjectHydrator implements ObjectHydratorInterface
             $transformer = new TimestampToDatetimeTransformer();
 
             return $transformer->reverseTransform($value);
+        }
+
+        if ($type === DataTypes::BOOLEAN) {
+            return intval($value);
         }
 
         return $value;

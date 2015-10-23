@@ -69,11 +69,14 @@ class MainContext extends BaseContext
         foreach ($table->getHash() as $data) {
             $car = new Car();
             $car->setId($data['id']);
-            $car->setColor($data['color']);
+            $car->setColor(isset($data['color']) ? $data['color'] : null);
             $car->setEngineType($data['engine_type']);
             $car->setMake($data['make']);
             $car->setModel($data['model']);
             $car->setManufactureDate(new \DateTime('2013-01-01'));
+            if (isset($data['active'])) {
+                $car->setActive((bool)$data['active']);
+            }
             $this->repository->save($car);
         }
     }
@@ -104,6 +107,22 @@ class MainContext extends BaseContext
             assertTrue(isset($data[$key]));
             assertEquals($value, $data[$key]);
         }
+    }
+
+    /**
+     * @Then the car with the id :id should have property :propertyName with the value :expectedValue:
+     */
+    public function theCarWithTheIdShouldHavePropertyWithValue($id, $propertyName, $expectedValue)
+    {
+        if ('true' === $expectedValue) {
+            $expectedValue = true;
+        } elseif ('false' === $expectedValue) {
+            $expectedValue = false;
+        }
+
+        $car = $this->repository->find($id);
+        $getter = 'get'.ucfirst(strtolower($propertyName));
+        assertSame($expectedValue, $car->$getter());
     }
 
     /**
@@ -184,6 +203,21 @@ class MainContext extends BaseContext
         $car = $this->getObjectById($id);
         $color = $color == 'null' ? null : $color;
         $car->setColor($color);
+        $this->repository->save($car);
+    }
+
+    /**
+     * @Then When I set the active for the car :id to :active
+     */
+    public function whenISetTheActiveForTheCarTo($id, $active)
+    {
+        $car = $this->getObjectById($id);
+        if ($active === 'true') {
+            $active = true;
+        } elseif ($active === 'false') {
+            $active = false;
+        }
+        $car->setActive($active);
         $this->repository->save($car);
     }
 
